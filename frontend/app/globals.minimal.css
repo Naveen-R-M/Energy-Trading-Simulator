@@ -1,0 +1,49 @@
+/* Minimal CSS without TailwindCSS processing */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+  background: #0b1e31;
+  color: white;
+  line-height: 1.6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.card {
+  background: #1a2938;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 10px 0;
+}
+
+.btn {
+  background: #00bfff;
+  color: #0b1e31;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.price-positive {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.price-negative {
+  color: #ef4444;
+  font-weight: 600;
+}

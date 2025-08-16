@@ -1,0 +1,21 @@
+# Simple Development Frontend Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+RUN rm -f package-lock.json && npm install
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Run in development mode (no build required)
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]

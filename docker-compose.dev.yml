@@ -1,0 +1,42 @@
+services:
+  # Backend service
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: energy-trading-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    restart: always
+    networks:
+      - energy-trading-network
+
+  # Frontend service (Development mode - no build required)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev  # Use the dev Dockerfile
+    container_name: energy-trading-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - BACKEND_URL=http://backend:8000
+    restart: always
+    networks:
+      - energy-trading-network
+
+# Define custom network for service communication
+networks:
+  energy-trading-network:
+    driver: bridge
