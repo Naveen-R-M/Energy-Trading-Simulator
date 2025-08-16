@@ -19,7 +19,7 @@ DEFAULT_MARKET = "pjm"
 DEFAULT_LOCATION = "PJM-RTO"
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_day_ahead_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get latest 24 hours of day-ahead prices."""
     url = (
@@ -29,12 +29,13 @@ def get_day_ahead_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_L
         f"&order=desc&limit=24"
         f"&columns=interval_start_utc,interval_end_utc,location,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_day_ahead_hour(market: str, location: str, hour_start: str, hour_end: str, api_key: str = None) -> List[Dict]:
     """Get day-ahead prices for specific time range."""
     url = (
@@ -44,12 +45,13 @@ def get_day_ahead_hour(market: str, location: str, hour_start: str, hour_end: st
         f"&filter_column=location&filter_value={location}"
         f"&columns=interval_start_utc,interval_end_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_rt_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get latest real-time price."""
     url = (
@@ -59,12 +61,13 @@ def get_rt_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION
         f"&filter_column=location&filter_value={location}"
         f"&limit=1&columns=interval_start_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_rt_last24h(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get last 24 hours of real-time prices (288 5-minute intervals)."""
     url = (
@@ -74,12 +77,13 @@ def get_rt_last24h(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATIO
         f"&order=desc&limit=288"
         f"&columns=interval_start_utc,lmp,energy,congestion,loss"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_rt_range(market: str, location: str, start: str, end: str, api_key: str = None) -> List[Dict]:
     """Get real-time prices for specific time range."""
     url = (
@@ -89,12 +93,13 @@ def get_rt_range(market: str, location: str, start: str, end: str, api_key: str 
         f"&filter_column=location&filter_value={location}"
         f"&order=asc&columns=interval_start_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_day_ahead_by_date(date: str, market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get day-ahead prices for a specific date (all 24 hours)."""
     url = (
@@ -102,8 +107,10 @@ def get_day_ahead_by_date(date: str, market: str = DEFAULT_MARKET, location: str
         f"?api_key={api_key}"
         f"&date={date}"
         f"&filter_column=location&filter_value={location}"
+        f"&order=asc&limit=24"
         f"&columns=interval_start_utc,interval_end_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
