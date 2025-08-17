@@ -1,0 +1,199 @@
+/* Enhanced CSS styles for glass components */
+
+/* Glass component styling for Arco Design components */
+.glass-select .arco-select-view {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #0f172a !important;
+  border-radius: 12px !important;
+}
+
+.glass-select .arco-select-view:hover {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+.glass-select .arco-select-view:focus-within {
+  border-color: rgba(59, 130, 246, 0.7) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.glass-picker .arco-picker {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #0f172a !important;
+  border-radius: 12px !important;
+}
+
+.glass-picker .arco-picker:hover {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+.glass-input .arco-input {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #0f172a !important;
+  border-radius: 12px !important;
+}
+
+.glass-input .arco-input:hover {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+.glass-input .arco-input:focus-within {
+  border-color: rgba(59, 130, 246, 0.7) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.glass-input .arco-input-inner {
+  background: transparent !important;
+  color: #0f172a !important;
+}
+
+.glass-button {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #0f172a !important;
+  border-radius: 12px !important;
+}
+
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Override Arco Design dropdown styles for glass theme */
+.arco-select-popup {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+.arco-select-option {
+  background: transparent !important;
+  color: #0f172a !important;
+  border-radius: 8px !important;
+  margin: 2px 8px !important;
+}
+
+.arco-select-option:hover {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #1e40af !important;
+}
+
+.arco-select-option-selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #1e40af !important;
+  font-weight: 500 !important;
+}
+
+/* Badge overrides for glass theme */
+.arco-badge .arco-badge-status-text {
+  color: #0f172a !important;
+}
+
+.arco-badge-status-success {
+  background: #10b981 !important;
+}
+
+.arco-badge-status-error {
+  background: #ef4444 !important;
+}
+
+/* Alert overrides for glass theme */
+.arco-alert {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-radius: 12px !important;
+}
+
+.arco-alert-warning {
+  background: rgba(251, 191, 36, 0.1) !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+.arco-alert-warning .arco-alert-content-title {
+  color: #92400e !important;
+}
+
+.arco-alert-warning .arco-alert-content-body {
+  color: #78350f !important;
+}
+
+/* Switch overrides for glass theme */
+.arco-switch {
+  background: rgba(156, 163, 175, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.arco-switch-checked {
+  background: rgba(59, 130, 246, 0.8) !important;
+}
+
+.arco-switch-dot {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* Progress overrides for glass theme */
+.arco-progress-bar {
+  background: rgba(226, 232, 240, 0.6) !important;
+  border-radius: 999px !important;
+}
+
+.arco-progress-bar-fill {
+  background: linear-gradient(90deg, #3b82f6, #6366f1) !important;
+  border-radius: 999px !important;
+}
+
+/* Tooltip overrides for glass theme */
+.arco-tooltip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 12px !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.arco-tooltip-arrow-content {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Divider overrides for glass theme */
+.arco-divider {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Loading spinner customization */
+.arco-spin-icon {
+  color: #3b82f6 !important;
+}
+
+/* Focus styles for accessibility */
+.glass-select .arco-select-view:focus,
+.glass-input .arco-input:focus,
+.glass-button:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5) !important;
+  outline-offset: 2px !important;
+}

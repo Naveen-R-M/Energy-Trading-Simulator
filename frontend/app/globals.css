@@ -4,7 +4,24 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Dark Blue Professional Energy Trading Theme */
+  /* Glassmorphism Design System - Light Theme (Default) */
+  --bg: #f2f5f9;
+  --glass: 255, 255, 255;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --accent: #4f46e5;
+  --buy: #16a34a;
+  --sell: #ef4444;
+  --warning: #f59e0b;
+  
+  /* Glass system tokens */
+  --radius-card: 20px;
+  --radius-field: 12px;
+  --radius-chip: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 30px rgba(2, 6, 23, 0.08);
+  
+  /* Legacy Dark Blue Professional Energy Trading Theme (preserved) */
   --background: #0f1419; /* Very dark blue-black */
   --foreground: #ffffff; /* Pure white text */
   --card: #1a2332; /* Dark blue card background */
@@ -41,7 +58,21 @@
 }
 
 .dark {
-  /* Same tokens for consistent dark theme */
+  /* Dark theme variant of glassmorphism */
+  --bg: #0f172a;
+  --glass: 255, 255, 255;
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --accent: #6366f1;
+  --buy: #22c55e;
+  --sell: #f87171;
+  --warning: #fbbf24;
+  
+  /* Dark theme glass adjustments */
+  --glass-surface-alpha: 0.08;
+  --glass-border-alpha: 0.2;
+  
+  /* Legacy dark tokens (preserved) */
   --background: #0f1419;
   --foreground: #ffffff;
   --card: #1a2332;
@@ -123,13 +154,35 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    /* Enhanced dark background */
-    background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+    @apply font-sans antialiased;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     letter-spacing: -0.01em;
-    color: #ffffff;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Glass morphism utilities */
+  .glass {
+    background: rgba(var(--glass), 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+  
+  .dark .glass {
+    background: rgba(var(--glass), 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Tabular numbers for trading data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    font-family: 'Roboto Mono', monospace;
   }
 
   /* Enhanced typography hierarchy */
@@ -281,145 +334,296 @@ div[class=""], div:not([class]) {
   background: transparent !important;
 }
 
-/* Arco Design component overrides */
+/* Glass component styling */
+.glass-select .arco-select-view {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-picker .arco-picker {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-input .arco-input {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-button {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-button:hover {
+  background: rgba(var(--glass), 0.5) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Dark theme adjustments for glass components */
+.dark .glass-select .arco-select-view,
+.dark .glass-picker .arco-picker,
+.dark .glass-input .arco-input,
+.dark .glass-button {
+  background: rgba(var(--glass), 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Enhanced Arco Design dark theme overrides */
 .arco-card {
-  background: #1a2332 !important;
-  border: 1px solid #374151 !important;
-  color: #ffffff !important;
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
 }
 
 .arco-card-header {
-  background: #1a2332 !important;
-  color: #ffffff !important;
-  border-bottom: 1px solid #374151 !important;
+  background: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+  border-bottom: 1px solid var(--color-border) !important;
 }
 
 .arco-card-body {
-  background: #1a2332 !important;
-  color: #ffffff !important;
-}
-
-/* Force all card-like elements to be dark */
-[class*="card"], [class*="panel"], [class*="section"] {
-  background: #1a2332 !important;
-  color: #ffffff !important;
-}
-
-/* Grid and flex containers */
-[class*="grid"], [class*="flex"], [class*="container"] {
-  background: transparent !important;
-}
-
-/* Common React component patterns */
-[class*="component"], [class*="widget"], [class*="tile"] {
-  background: #1a2332 !important;
-  color: #ffffff !important;
+  background: var(--color-card) !important;
+  color: var(--color-foreground) !important;
 }
 
 .arco-space {
-  color: #ffffff !important;
+  color: var(--color-foreground) !important;
 }
 
 .arco-typography {
-  color: #ffffff !important;
+  color: var(--color-foreground) !important;
 }
 
 .arco-select {
-  background: #1f2937 !important;
-  border: 1px solid #374151 !important;
-  color: #ffffff !important;
+  background: var(--color-input) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
 }
 
 .arco-select-view {
-  background: #1f2937 !important;
-  color: #ffffff !important;
+  background: var(--color-input) !important;
+  color: var(--color-foreground) !important;
+}
+
+.arco-select-view-value {
+  color: var(--color-foreground) !important;
+}
+
+.arco-select-popup {
+  background: var(--color-popover) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.arco-select-option {
+  background: var(--color-popover) !important;
+  color: var(--color-foreground) !important;
+}
+
+.arco-select-option:hover {
+  background: var(--color-accent) !important;
+  color: var(--color-accent-foreground) !important;
+}
+
+.arco-select-option-selected {
+  background: var(--color-accent) !important;
+  color: var(--color-accent-foreground) !important;
 }
 
 .arco-input {
-  background: #1f2937 !important;
-  border: 1px solid #374151 !important;
-  color: #ffffff !important;
+  background: var(--color-input) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+.arco-input-inner {
+  background: var(--color-input) !important;
+  color: var(--color-foreground) !important;
+}
+
+.arco-input:focus-within {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px var(--color-accent) !important;
+}
+
+.arco-btn {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+.arco-btn:hover {
+  background: var(--color-muted) !important;
+  border-color: var(--color-accent) !important;
 }
 
 .arco-btn-primary {
-  background: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent-foreground) !important;
 }
 
 .arco-btn-primary:hover {
-  background: #2563eb !important;
-  border-color: #2563eb !important;
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  opacity: 0.9;
 }
 
+.arco-radio-group {
+  color: var(--color-foreground) !important;
+}
+
+.arco-radio {
+  color: var(--color-foreground) !important;
+}
+
+.arco-radio-checked .arco-radio-icon {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent) !important;
+}
+
+.arco-progress-bar {
+  background: var(--color-muted) !important;
+}
+
+.arco-progress-bar-fill {
+  background: var(--color-accent) !important;
+}
+
+.arco-alert {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+.arco-alert-warning {
+  background: var(--color-destructive) !important;
+  border-color: var(--color-destructive) !important;
+  color: var(--color-destructive-foreground) !important;
+}
+
+.arco-badge {
+  color: var(--color-foreground) !important;
+}
+
+.arco-tooltip {
+  background: var(--color-popover) !important;
+  color: var(--color-popover-foreground) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.arco-divider {
+  border-color: var(--color-border) !important;
+}
+
+/* Enhanced table styling */
 .arco-table {
-  background: #1a2332 !important;
-  color: #ffffff !important;
+  background: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+  border: 1px solid var(--color-border) !important;
 }
 
 .arco-table-thead {
-  background: #0f1419 !important;
+  background: var(--color-background) !important;
 }
 
 .arco-table-thead th {
-  background: #0f1419 !important;
-  color: #ffffff !important;
-  border-bottom: 1px solid #374151 !important;
+  background: var(--color-background) !important;
+  color: var(--color-foreground) !important;
+  border-bottom: 1px solid var(--color-border) !important;
 }
 
 .arco-table-tbody tr {
-  background: #1a2332 !important;
-  border-bottom: 1px solid #374151 !important;
+  background: var(--color-card) !important;
+  border-bottom: 1px solid var(--color-border) !important;
 }
 
 .arco-table-tbody td {
-  color: #ffffff !important;
-  border-bottom: 1px solid #374151 !important;
+  color: var(--color-foreground) !important;
+  border-bottom: 1px solid var(--color-border) !important;
 }
 
 .arco-table-tbody tr:hover {
-  background: #1f2937 !important;
+  background: var(--color-muted) !important;
 }
 
+.arco-table-expand-content {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+/* Enhanced tabs styling */
 .arco-tabs {
-  color: #ffffff !important;
+  color: var(--color-foreground) !important;
 }
 
 .arco-tabs-header {
-  background: #1a2332 !important;
-  border-bottom: 1px solid #374151 !important;
+  background: var(--color-card) !important;
+  border-bottom: 1px solid var(--color-border) !important;
 }
 
 .arco-tabs-tab {
-  color: #94a3b8 !important;
+  color: var(--color-muted-foreground) !important;
 }
 
 .arco-tabs-tab-active {
-  color: #ffffff !important;
-  border-bottom-color: #3b82f6 !important;
+  color: var(--color-foreground) !important;
+  border-bottom-color: var(--color-accent) !important;
 }
 
 .arco-tabs-content {
-  background: #1a2332 !important;
-  color: #ffffff !important;
+  background: var(--color-card) !important;
+  color: var(--color-foreground) !important;
 }
 
-/* Date picker overrides */
+/* Enhanced date picker overrides */
 .arco-picker {
-  background: #1f2937 !important;
-  border: 1px solid #374151 !important;
-  color: #ffffff !important;
+  background: var(--color-input) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
 }
 
 .arco-picker-input {
-  background: #1f2937 !important;
-  color: #ffffff !important;
+  background: var(--color-input) !important;
+  color: var(--color-foreground) !important;
 }
 
-/* Notification overrides */
+.arco-picker-popup {
+  background: var(--color-popover) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-popover-foreground) !important;
+}
+
+/* Enhanced notification overrides */
 .arco-notification {
-  background: #1a2332 !important;
-  border: 1px solid #374151 !important;
-  color: #ffffff !important;
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+/* Enhanced collapse/accordion styling */
+.arco-collapse {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.arco-collapse-item-header {
+  background: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.arco-collapse-item-content {
+  background: var(--color-card) !important;
+  color: var(--color-foreground) !important;
 }
 
 /* Live price indicators */
@@ -497,7 +701,48 @@ div[class=""], div:not([class]) {
   border-color: #3b82f6;
 }
 
-/* Utility classes for consistent spacing and colors */
+/* Glassmorphism color utilities */
+.text-ink {
+  color: var(--ink) !important;
+}
+
+.text-muted {
+  color: var(--muted) !important;
+}
+
+.text-accent {
+  color: var(--accent) !important;
+}
+
+.text-buy {
+  color: var(--buy) !important;
+}
+
+.text-sell {
+  color: var(--sell) !important;
+}
+
+.text-warning {
+  color: var(--warning) !important;
+}
+
+.bg-accent {
+  background-color: var(--accent) !important;
+}
+
+.bg-buy {
+  background-color: var(--buy) !important;
+}
+
+.bg-sell {
+  background-color: var(--sell) !important;
+}
+
+.bg-warning {
+  background-color: var(--warning) !important;
+}
+
+/* Legacy utility classes for backward compatibility */
 .bg-trading-dark {
   background-color: #0f1419 !important;
 }

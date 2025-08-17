@@ -286,21 +286,19 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
 
   const getStatusIcon = (status: TradeStatus) => {
     switch (status) {
-      case "queued":
       case "pending":
-        return <IconLoading className="text-blue-500" />
+        return <IconLoading className="text-accent" />
       case "awarded":
-        return <IconCheckCircle className="text-green-500" />
+        return <IconCheckCircle className="text-primary" />
       case "rejected":
-        return <IconExclamationCircle className="text-red-500" />
+        return <IconExclamationCircle className="text-secondary" />
       default:
-        return <IconClockCircle className="text-gray-500" />
+        return <IconClockCircle className="text-muted-foreground" />
     }
   }
 
   const getStatusColor = (status: TradeStatus) => {
     switch (status) {
-      case "queued":
       case "pending":
         return "blue"
       case "awarded":
@@ -337,13 +335,13 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
               {fakeMode ? (
                 <IconFolder className="text-orange-600" />
               ) : (
-                <IconBug className="text-gray-600" />
+                <IconBug className="text-accent" />
               )}
               <div>
                 <Text className="text-sm font-medium">
                   {fakeMode ? "Fake Mode Active" : "Live Mode"}
                 </Text>
-                <Text className="text-xs text-gray-600 block">
+                <Text className="text-xs text-muted-foreground block">
                   {fakeMode 
                     ? `Orders auto-moderate at ${getNextModerationTime().toLocaleTimeString()} (next 5-min + 45s)` 
                     : "Standard simulation mode"
@@ -364,26 +362,20 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
 
         {/* Auction Countdown - only show in live mode */}
         {!fakeMode && (
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-accent/10 border-accent/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <IconClockCircle className="text-blue-600" />
-                <Text className="text-sm font-medium">DA Auction Close</Text>
+                <IconClockCircle className="text-accent" />
+                <Text className="text-sm font-medium text-foreground">DA Auction Close</Text>
               </div>
               <div className="text-right">
-                <Text className="text-lg font-mono font-bold text-blue-700">
+                <Text className="text-lg font-mono font-bold text-accent">
                   {String(timeToClose.hours).padStart(2, "0")}:{String(timeToClose.minutes).padStart(2, "0")}:
                   {String(timeToClose.seconds).padStart(2, "0")}
                 </Text>
-                <Text className="text-xs text-gray-600">until 11:00 AM ET</Text>
+                <Text className="text-xs text-muted-foreground">until 11:00 AM ET</Text>
               </div>
             </div>
-            <Progress
-              percent={Math.max(0, 100 - (timeToClose.totalSeconds / (11 * 3600)) * 100)}
-              size="small"
-              className="mt-2"
-              showText={false}
-            />
           </Card>
         )}
 
@@ -391,7 +383,7 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
         <div className="space-y-4">
           {/* Hour Selection */}
           <div>
-            <Text className="text-sm font-medium mb-2 block">Delivery Hour</Text>
+            <Text className="text-sm font-medium mb-2 block text-foreground">Delivery Hour</Text>
             {fakeMode ? (
               <div className="p-3 bg-orange-50 border border-orange-200 rounded">
                 <div className="flex items-center justify-between mb-2">
@@ -426,7 +418,7 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
                   <Option key={option.value} value={option.value} disabled={option.disabled}>
                     <div className="flex justify-between">
                       <span>{option.label}</span>
-                      <span className="text-gray-500 text-xs">~${getDaLmpForHour(option.value).toFixed(2)}</span>
+                      <span className="text-muted-foreground text-xs">~${getDaLmpForHour(option.value).toFixed(2)}</span>
                     </div>
                   </Option>
                 ))}
@@ -436,15 +428,15 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
 
           {/* Side Selection */}
           <div>
-            <Text className="text-sm font-medium mb-2 block">Side</Text>
+            <Text className="text-sm font-medium mb-2 block text-foreground">Side</Text>
             <RadioGroup value={side} onChange={setSide} disabled={!isTradingAllowed && !fakeMode}>
               <Radio value="Buy">
-                <span className="text-green-600 font-medium">Buy</span>
-                <Text className="text-xs text-gray-500 ml-2">Long position</Text>
+                <span className="text-primary font-medium">Buy</span>
+                <Text className="text-xs text-muted-foreground ml-2">Long position</Text>
               </Radio>
               <Radio value="Sell">
-                <span className="text-red-600 font-medium">Sell</span>
-                <Text className="text-xs text-gray-500 ml-2">Short position</Text>
+                <span className="text-secondary font-medium">Sell</span>
+                <Text className="text-xs text-muted-foreground ml-2">Short position</Text>
               </Radio>
             </RadioGroup>
           </div>
@@ -452,9 +444,9 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
           {/* Quantity */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Text className="text-sm font-medium">Quantity (MWh)</Text>
+              <Text className="text-sm font-medium text-foreground">Quantity (MWh)</Text>
               <Tooltip content="Minimum 1 MWh, maximum 1000 MWh per hour">
-                <IconInfoCircle className="text-gray-400 text-xs" />
+                <IconInfoCircle className="text-muted-foreground text-xs" />
               </Tooltip>
             </div>
             <Input
@@ -472,9 +464,9 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
           {/* Limit Price */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Text className="text-sm font-medium">Limit Price ($/MWh)</Text>
+              <Text className="text-sm font-medium text-foreground">Limit Price ($/MWh)</Text>
               <Tooltip content="Maximum price for buy orders, minimum price for sell orders">
-                <IconInfoCircle className="text-gray-400 text-xs" />
+                <IconInfoCircle className="text-muted-foreground text-xs" />
               </Tooltip>
             </div>
             <Input
@@ -486,16 +478,16 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
               step={0.01}
               disabled={!isTradingAllowed && !fakeMode}
             />
-            <Text className="text-xs text-gray-500 mt-1">
-              Est. DA LMP: ${estimatedDaLmp.toFixed(2)} (
-              {side === "Buy"
-                ? limitPrice >= estimatedDaLmp
-                  ? "Likely to clear"
-                  : "May not clear"
-                : limitPrice <= estimatedDaLmp
-                  ? "Likely to clear"
-                  : "May not clear"}
-              )
+            <Text className="text-xs text-muted-foreground mt-1">
+            Est. DA LMP: ${estimatedDaLmp.toFixed(2)} (
+            {side === "Buy"
+            ? limitPrice >= estimatedDaLmp
+            ? "Likely to clear"
+            : "May not clear"
+            : limitPrice <= estimatedDaLmp
+            ? "Likely to clear"
+            : "May not clear"}
+            )
             </Text>
           </div>
 
@@ -533,35 +525,35 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
           <>
             <Divider />
             <div>
-              <Text className="text-sm font-medium mb-3 block">Recent Tickets</Text>
+              <Text className="text-sm font-medium mb-3 block text-foreground">Recent Tickets</Text>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {tickets.slice(-3).map((ticket, index) => (
-                  <Card key={index} className={ticket.isFake ? "bg-orange-50 border-orange-200" : "bg-gray-50"}>
+                  <Card key={index} className={ticket.isFake ? "bg-orange-50 border-orange-200" : "bg-card border-border"}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(ticket.status)}
                         <div>
                           <div className="flex items-center gap-2">
-                            <Text className="text-sm font-medium">
+                            <Text className="text-sm font-medium text-foreground">
                               {ticket.side} {ticket.quantity} MWh @ H{ticket.hour}
                             </Text>
                             {ticket.isFake && (
                               <Badge color="orange" text="FAKE" />
                             )}
                           </div>
-                          <Text className="text-xs text-gray-500">Limit: ${ticket.limitPrice.toFixed(2)}</Text>
+                          <Text className="text-xs text-muted-foreground">Limit: ${ticket.limitPrice.toFixed(2)}</Text>
                           {ticket.orderId && (
-                            <Text className="text-xs text-gray-400">ID: {ticket.orderId.substring(0, 8)}...</Text>
+                            <Text className="text-xs text-muted-foreground">ID: {ticket.orderId.substring(0, 8)}...</Text>
                           )}
                         </div>
                       </div>
                       <div className="text-right">
                         <Badge color={getStatusColor(ticket.status)} text={ticket.status.toUpperCase()} />
                         {ticket.status === "queued" && ticket.queuePosition && (
-                          <Text className="text-xs text-gray-500 block">Queue: #{ticket.queuePosition}</Text>
+                          <Text className="text-xs text-muted-foreground block">Queue: #{ticket.queuePosition}</Text>
                         )}
                         {ticket.status === "awarded" && ticket.awardedPrice && (
-                          <Text className="text-xs text-green-600 block">
+                          <Text className="text-xs text-primary block">
                             Awarded: ${ticket.awardedPrice.toFixed(2)}
                           </Text>
                         )}

@@ -100,52 +100,25 @@ const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
             style={{ width: progress.width }}
           />
         </div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">{progress.text}</div>
+        <div className="text-xs text-muted-foreground">{progress.text}</div>
       </div>
     );
   };
 
-  const calculateLivePnL = (order: Order) => {
-    if (!order.approval_rt_lmp || !order.limit_price) return null;
-    
-    const daPrice = order.limit_price; // Bid/offer price
-    const rtPrice = order.approval_rt_lmp; // Real-time price
-    const qty = order.qty_mwh;
-    
-    let pnl: number;
-    if (order.side === 'BUY') {
-      // For BUY: profit when RT > DA (buy low, sell high at RT)
-      pnl = (rtPrice - daPrice) * qty;
-    } else {
-      // For SELL: profit when DA > RT (sell high at DA, buy back low at RT)  
-      pnl = (daPrice - rtPrice) * qty;
-    }
-    
-    return pnl;
-  };
-
-  const formatPnL = (pnl: number | null) => {
-    if (pnl === null || pnl === undefined) return '—';
-    const formatted = pnl.toFixed(2);
-    const color = pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-    return <span className={color}>${formatted}</span>;
-  };
-
   const getDALMP = (order: Order) => {
-    // Show limit_price as bid/offer since DA clearing price isn't stored yet
     const price = order.limit_price;
     
     return (
       <span title="Bid/Offer Price">
         ${price?.toFixed(2) || '—'}
-        <span className="text-xs text-gray-500 ml-1">(Bid)</span>
+        <span className="text-xs text-muted-foreground ml-1">(Bid)</span>
       </span>
     );
   };
 
   if (orders.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-12 text-muted-foreground">
         <div className="text-lg mb-2">No open positions</div>
         <div className="text-sm">Submit trades to see positions here</div>
       </div>
@@ -157,28 +130,28 @@ const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead className="bg-gray-50 dark:bg-gray-800">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Hour
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               DA LMP
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Side
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Quantity
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Progress
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Approval LMP
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Live P&L
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Status
             </th>
           </tr>
@@ -186,25 +159,25 @@ const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
         <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
           {orders.map((order) => (
             <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                 {formatHour(order.hour_start_utc)}
               </td>
-              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                 {getDALMP(order)}
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
                 <SideBadge side={order.side} />
               </td>
-              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                 {order.qty_mwh} MWh
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
                 <ProgressPill status={order.status} />
               </td>
-              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                {order.approval_rt_lmp ? `${order.approval_rt_lmp.toFixed(2)}` : '—'}
+              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                {order.approval_rt_lmp ? `$${order.approval_rt_lmp.toFixed(2)}` : '—'}
               </td>
-              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-gray-400">
+              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-muted-foreground">
                 —
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
