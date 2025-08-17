@@ -108,14 +108,32 @@ export default function TradeTicketPanelGlass({ currentTime, onTradeSubmit }: Tr
   const getNextModerationTime = () => {
     const now = new Date(currentTime)
     const minutes = now.getMinutes()
-    const nextFiveMin = Math.ceil(minutes / 5) * 5
+    const seconds = now.getSeconds()
+    
+    // Always get the NEXT 5-minute mark (not current if we're already at one)
+    let nextFiveMin = Math.ceil(minutes / 5) * 5
+    
+    // If we're exactly at a 5-minute mark, move to the next one
+    if (minutes % 5 === 0 && seconds <= 45) {
+      nextFiveMin += 5
+    }
     
     const nextModerationTime = new Date(now)
     
     if (nextFiveMin >= 60) {
+      // Next hour
       nextModerationTime.setHours(nextModerationTime.getHours() + 1, 0, 45, 0)
     } else {
+      // Same hour
       nextModerationTime.setMinutes(nextFiveMin, 45, 0)
+    }
+    
+    // Final safety check: ensure moderation time is at least 10 seconds in the future
+    if (nextModerationTime.getTime() - now.getTime() < 10000) {
+      nextModerationTime.setMinutes(nextModerationTime.getMinutes() + 5)
+      if (nextModerationTime.getMinutes() >= 60) {
+        nextModerationTime.setHours(nextModerationTime.getHours() + 1, 0, 45, 0)
+      }
     }
     
     return nextModerationTime
@@ -191,47 +209,12 @@ export default function TradeTicketPanelGlass({ currentTime, onTradeSubmit }: Tr
         const nextModerationTime = getNextModerationTime()
         
         Message.success({
-          content: `Fake order created for hour ${effectiveHour}:00! Order ID: ${result.order_id.substring(0, 8)}... (Pending until ${nextModerationTime.toLocaleTimeString()})`,
+          content: `Fake order created for hour ${effectiveHour}:00! Order ID: ${result.order_id.substring(0, 8)}... (Auto-moderation at ${nextModerationTime.toLocaleTimeString()})`,
           duration: 4000,
         })
 
-        // Auto-trigger moderation at next 5-min interval + 45s
-        setTimeout(async () => {
-          try {
-            const moderateResponse = await fetch(`/api/v1/orders/moderate/${encodeURIComponent(moderationTimeUTC)}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            })
-
-            if (moderateResponse.ok) {
-              const moderateResult = await moderateResponse.json()
-              const orderResult = moderateResult.result.orders.find((o: any) => o.order_id === result.order_id)
-              
-              if (orderResult) {
-                setTickets((prev) =>
-                  prev.map((ticket) =>
-                    ticket.orderId === result.order_id
-                      ? {
-                          ...ticket,
-                          status: orderResult.status.toLowerCase() === 'approved' ? "awarded" : "rejected",
-                          awardedPrice: orderResult.approval_rt_lmp || undefined,
-                        }
-                      : ticket,
-                  ),
-                )
-                
-                Message.info({
-                  content: `Order ${orderResult.status.toLowerCase()} ${orderResult.approval_rt_lmp ? `at $${orderResult.approval_rt_lmp}` : ''} ${orderResult.reject_reason ? `- ${orderResult.reject_reason}` : ''}`,
-                  duration: 5000,
-                })
-              }
-            }
-          } catch (error) {
-            console.error('Auto-moderation failed:', error)
-          }
-        }, moderationDelay)
+        // The scheduler will automatically moderate this order at the scheduled time
+        // No need for manual setTimeout - the backend scheduler handles it
 
       } else {
         // Original logic for non-fake mode

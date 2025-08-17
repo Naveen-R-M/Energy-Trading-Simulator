@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from models import orders, Order
 from fake_order_manager import db_manager
 from moderate_hour import moderator
+from order_scheduler import order_scheduler
 from services import (
     get_day_ahead_latest, get_day_ahead_by_date, get_day_ahead_hour,
     get_rt_latest, get_rt_last24h, get_rt_range,
@@ -309,6 +310,58 @@ def moderate_hour_orders(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error moderating hour: {str(e)}")
+
+# --- Order Scheduler Management ---
+@app.get("/api/v1/scheduler/status")
+def get_scheduler_status():
+    """Get current scheduler status and statistics."""
+    try:
+        status = order_scheduler.get_scheduler_status()
+        return {
+            "status": "success",
+            "scheduler": status
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting scheduler status: {str(e)}")
+
+@app.post("/api/v1/scheduler/start")
+def start_scheduler():
+    """Start the order scheduler."""
+    try:
+        order_scheduler.start()
+        return {
+            "status": "success",
+            "message": "Order scheduler started",
+            "scheduler": order_scheduler.get_scheduler_status()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting scheduler: {str(e)}")
+
+@app.post("/api/v1/scheduler/stop")
+def stop_scheduler():
+    """Stop the order scheduler."""
+    try:
+        order_scheduler.stop()
+        return {
+            "status": "success",
+            "message": "Order scheduler stopped",
+            "scheduler": order_scheduler.get_scheduler_status()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error stopping scheduler: {str(e)}")
+
+@app.post("/api/v1/scheduler/force-run")
+def force_run_scheduler():
+    """Manually trigger scheduler to process due orders immediately."""
+    try:
+        result = order_scheduler.moderate_due_orders()
+        return {
+            "status": "success",
+            "message": f"Processed {result['processed']} orders",
+            "result": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error running scheduler: {str(e)}")
 
 @app.get("/api/v1/positions/open")
 def open_positions(
