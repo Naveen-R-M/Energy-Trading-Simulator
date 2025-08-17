@@ -1,3 +1,8 @@
+# Application Screenshot
+
+Below is a full-size screenshot of the Energy Trading Simulator application:
+
+![Application Screenshot](docs/Full_Web_Page_Screenshot.jpeg)
 # ⚡ Virtual Energy Trading Simulator
 
 A comprehensive simulation platform for virtual energy trading in **Day-Ahead (DA)** and **Real-Time (RT)** electricity markets. Built with modern web technologies and designed to help understand energy market dynamics while providing a realistic trading experience.
@@ -69,7 +74,7 @@ This platform simulates an energy trader who can:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/energy-trading-simulator.git
+   git clone https://github.com/Naveen-R-M/Energy-Trading-Simulator.git
    cd Energy-Trading-Simulator
    ```
 
