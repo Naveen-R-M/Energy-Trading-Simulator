@@ -445,8 +445,8 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-medium">{label}</p>
+        <div className="bg-card p-3 border border-border rounded-lg shadow-lg text-foreground">
+          <p className="font-medium text-foreground">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
               {entry.name}: ${entry.value?.toFixed(2)}
@@ -462,12 +462,12 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
     if (active && payload && payload.length) {
       const data = payload[0]?.payload
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-medium">{label}</p>
-          <p style={{ color: "#2563eb" }}>RT LMP: ${data?.rtLmp?.toFixed(2)}</p>
-          <p style={{ color: "#dc2626" }}>DA LMP: ${data?.daLmp?.toFixed(2)}</p>
-          <p style={{ color: data?.spread > 0 ? "#16a34a" : "#dc2626" }}>Spread: ${data?.spread?.toFixed(2)}</p>
-          <p className="text-sm text-gray-600">
+        <div className="bg-card p-3 border border-border rounded-lg shadow-lg text-foreground">
+          <p className="font-medium text-foreground">{label}</p>
+          <p className="text-accent">RT LMP: ${data?.rtLmp?.toFixed(2)}</p>
+          <p className="text-secondary">DA LMP: ${data?.daLmp?.toFixed(2)}</p>
+          <p className={data?.spread > 0 ? "text-primary" : "text-secondary"}>Spread: ${data?.spread?.toFixed(2)}</p>
+          <p className="text-sm text-muted-foreground">
             Signal: {data?.profitable === "buy" ? "Buy DA" : data?.profitable === "sell" ? "Sell DA" : "Neutral"}
           </p>
         </div>
@@ -525,18 +525,18 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
             // Loading state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                <Text className="text-sm text-gray-500">Loading {rtTimeRange} data...</Text>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-2"></div>
+                <Text className="text-sm text-muted-foreground">Loading {rtTimeRange} data...</Text>
               </div>
             </div>
           ) : rtError ? (
             // Error state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <Text className="text-sm text-red-500 mb-2">❌ Error: {rtError}</Text>
+                <Text className="text-sm text-destructive mb-2">❌ Error: {rtError}</Text>
                 <button 
                   onClick={() => fetchRealTimeData(rtTimeRange)}
-                  className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                  className="px-3 py-1 bg-accent text-accent-foreground rounded text-xs hover:bg-accent/90"
                 >
                   Retry
                 </button>
@@ -545,28 +545,32 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           ) : rtData.length === 0 ? (
             // No data state
             <div className="flex items-center justify-center h-full">
-              <Text className="text-sm text-gray-500">No data available for {rtTimeRange}</Text>
+              <Text className="text-sm text-muted-foreground">No data available for {rtTimeRange}</Text>
             </div>
           ) : (
             // Chart with real data
             <ResponsiveContainer width="100%" height="100%">
               {showComponents ? (
                 <AreaChart data={rtData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                   <XAxis 
                     dataKey="time" 
-                    tick={{ fontSize: 10 }} 
-                    interval="preserveStartEnd" 
+                    tick={{ fontSize: 10, fill: 'var(--color-foreground)' }} 
+                    interval="preserveStartEnd"
+                    axisLine={{ stroke: 'var(--color-border)' }}
                   />
-                  <YAxis tick={{ fontSize: 10 }} />
+                  <YAxis 
+                    tick={{ fontSize: 10, fill: 'var(--color-foreground)' }}
+                    axisLine={{ stroke: 'var(--color-border)' }}
+                  />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Legend />
                   <Area
                     type="monotone"
                     dataKey="energy"
                     stackId="1"
-                    stroke="#3b82f6"
-                    fill="#3b82f6"
+                    stroke="var(--color-accent)"
+                    fill="var(--color-accent)"
                     fillOpacity={0.6}
                     name="Energy"
                   />
@@ -574,8 +578,8 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
                     type="monotone"
                     dataKey="congestion"
                     stackId="1"
-                    stroke="#ef4444"
-                    fill="#ef4444"
+                    stroke="var(--color-secondary)"
+                    fill="var(--color-secondary)"
                     fillOpacity={0.6}
                     name="Congestion"
                   />
@@ -583,26 +587,30 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
                     type="monotone"
                     dataKey="loss"
                     stackId="1"
-                    stroke="#f59e0b"
-                    fill="#f59e0b"
+                    stroke="var(--color-chart-4)"
+                    fill="var(--color-chart-4)"
                     fillOpacity={0.6}
                     name="Loss"
                   />
                 </AreaChart>
               ) : (
                 <LineChart data={rtData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                   <XAxis 
                     dataKey="time" 
-                    tick={{ fontSize: 10 }} 
-                    interval="preserveStartEnd" 
+                    tick={{ fontSize: 10, fill: 'var(--color-foreground)' }} 
+                    interval="preserveStartEnd"
+                    axisLine={{ stroke: 'var(--color-border)' }}
                   />
-                  <YAxis tick={{ fontSize: 10 }} />
+                  <YAxis 
+                    tick={{ fontSize: 10, fill: 'var(--color-foreground)' }}
+                    axisLine={{ stroke: 'var(--color-border)' }}
+                  />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Line 
                     type="monotone" 
                     dataKey="lmp" 
-                    stroke="#2563eb" 
+                    stroke="var(--color-accent)" 
                     strokeWidth={2} 
                     dot={false} 
                     name="LMP" 
@@ -613,7 +621,7 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           )}
         </div>
 
-        <div className="mt-3 flex justify-between text-sm text-gray-600">
+        <div className="mt-3 flex justify-between text-sm text-muted-foreground">
           <span>Current: ${rtData.length > 0 ? rtData[rtData.length - 1]?.lmp.toFixed(2) : '--'}</span>
           <span>{rtTimeRange} Avg: ${rtData.length > 0 ? (rtData.reduce((sum, d) => sum + d.lmp, 0) / rtData.length).toFixed(2) : '--'}</span>
           <span>Peak: ${rtData.length > 0 ? Math.max(...rtData.map((d) => d.lmp)).toFixed(2) : '--'}</span>
@@ -644,18 +652,18 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
             // Loading state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
-                <Text className="text-sm text-gray-500">Loading day-ahead data...</Text>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary mx-auto mb-2"></div>
+                <Text className="text-sm text-muted-foreground">Loading day-ahead data...</Text>
               </div>
             </div>
           ) : daError ? (
             // Error state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <Text className="text-sm text-red-500 mb-2">❌ Error: {daError}</Text>
+                <Text className="text-sm text-destructive mb-2">❌ Error: {daError}</Text>
                 <button 
                   onClick={() => fetchDayAheadData(selectedDate)}
-                  className="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                  className="px-3 py-1 bg-secondary text-secondary-foreground rounded text-xs hover:bg-secondary/90"
                 >
                   Retry
                 </button>
@@ -664,22 +672,30 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           ) : daData.length === 0 ? (
             // No data state
             <div className="flex items-center justify-center h-full">
-              <Text className="text-sm text-gray-500">No day-ahead data for {selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</Text>
+              <Text className="text-sm text-muted-foreground">No day-ahead data for {selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</Text>
             </div>
           ) : (
             // Chart with real DA data
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={daData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} interval={2} />
-                <YAxis tick={{ fontSize: 10 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <XAxis 
+                  dataKey="time" 
+                  tick={{ fontSize: 10, fill: 'var(--color-foreground)' }} 
+                  interval={2}
+                  axisLine={{ stroke: 'var(--color-border)' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10, fill: 'var(--color-foreground)' }}
+                  axisLine={{ stroke: 'var(--color-border)' }}
+                />
                 <RechartsTooltip content={<CustomTooltip />} />
                 <Line
                   type="stepAfter"
                   dataKey="daLmp"
-                  stroke="#dc2626"
+                  stroke="var(--color-secondary)"
                   strokeWidth={2}
-                  dot={{ fill: "#dc2626", strokeWidth: 2, r: 3 }}
+                  dot={{ fill: "var(--color-secondary)", strokeWidth: 2, r: 3 }}
                   name="DA LMP"
                 />
               </LineChart>
@@ -703,7 +719,7 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
               </span>
             </>
           ) : (
-            <span className="text-gray-400">No statistics available</span>
+            <span className="text-muted-foreground">No statistics available</span>
           )}
         </div>
       </Card>
@@ -727,18 +743,18 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
             // Loading state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
-                <Text className="text-sm text-gray-500">Loading spread data...</Text>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <Text className="text-sm text-muted-foreground">Loading spread data...</Text>
               </div>
             </div>
           ) : spreadError ? (
             // Error state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <Text className="text-sm text-red-500 mb-2">❌ Error: {spreadError}</Text>
+                <Text className="text-sm text-destructive mb-2">❌ Error: {spreadError}</Text>
                 <button 
                   onClick={() => fetchSpreadData()}
-                  className="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                  className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90"
                 >
                   Retry
                 </button>
@@ -747,24 +763,31 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           ) : spreadData.length === 0 ? (
             // No data state
             <div className="flex items-center justify-center h-full">
-              <Text className="text-sm text-gray-500">No spread data for hour {currentHour}</Text>
+              <Text className="text-sm text-muted-foreground">No spread data for hour {currentHour}</Text>
             </div>
           ) : (
             // Chart with real spread data
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={spreadData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <XAxis 
+                  dataKey="time" 
+                  tick={{ fontSize: 10, fill: 'var(--color-foreground)' }}
+                  axisLine={{ stroke: 'var(--color-border)' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10, fill: 'var(--color-foreground)' }}
+                  axisLine={{ stroke: 'var(--color-border)' }}
+                />
                 <RechartsTooltip content={<SpreadTooltip />} />
                 <Line
                   type="monotone"
                   dataKey="spread"
-                  stroke="#16a34a"
+                  stroke="var(--color-primary)"
                   strokeWidth={2}
                   dot={(props: any) => {
                     const { payload, key, ...restProps } = props
-                    const color = payload.spread > 1 ? "#16a34a" : payload.spread < -1 ? "#dc2626" : "#6b7280"
+                    const color = payload.spread > 1 ? "var(--color-primary)" : payload.spread < -1 ? "var(--color-secondary)" : "var(--color-muted)"
                     return <circle key={key} {...restProps} fill={color} stroke={color} strokeWidth={2} r={4} />
                   }}
                   name="Spread"
@@ -773,7 +796,7 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
                 <Line
                   type="monotone"
                   dataKey={() => 0}
-                  stroke="#6b7280"
+                  stroke="var(--color-muted)"
                   strokeWidth={1}
                   strokeDasharray="5 5"
                   dot={false}
@@ -788,33 +811,33 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           {spreadData.length > 0 ? (
             <>
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">
+                <span className="text-muted-foreground">
                   Current Spread: ${spreadData[spreadData.length - 1]?.spread.toFixed(2)}
                 </span>
-                <span className="text-gray-600">
+                <span className="text-muted-foreground">
                   Avg: ${(spreadData.reduce((sum, d) => sum + d.spread, 0) / spreadData.length).toFixed(2)}
                 </span>
-                <span className="text-gray-600">
+                <span className="text-muted-foreground">
                   DA Price: ${spreadData[0]?.daLmp.toFixed(2)}
                 </span>
               </div>
-              <div className="flex gap-4 text-xs">
+              <div className="flex gap-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <span>Buy DA Signal (&gt;$1)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-secondary rounded-full"></div>
                   <span>Sell DA Signal (&lt;-$1)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  <div className="w-2 h-2 bg-muted rounded-full"></div>
                   <span>Neutral</span>
                 </div>
               </div>
             </>
           ) : (
-            <div className="text-center text-gray-400 text-sm">
+            <div className="text-center text-muted-foreground text-sm">
               No spread statistics available
             </div>
           )}

@@ -140,7 +140,7 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
   }
 
   const formatCurrency = (value: number) => {
-    const color = value >= 0 ? "text-green-600" : "text-red-600"
+    const color = value >= 0 ? "text-primary" : "text-secondary"
     const sign = value >= 0 ? "+" : ""
     return (
       <span className={color}>
@@ -155,8 +155,8 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
     const etTime = `${String(etHour).padStart(2, "0")}:00 ET`
     return (
       <div>
-        <div className="font-medium">{etTime}</div>
-        <div className="text-xs text-gray-500">{utcTime}</div>
+        <div className="font-medium text-foreground">{etTime}</div>
+        <div className="text-xs text-muted-foreground">{utcTime}</div>
       </div>
     )
   }
@@ -204,7 +204,7 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
         return (
           <div className="w-24">
             <Progress percent={progress} size="small" showText={false} />
-            <Text className="text-xs text-gray-500">{filledIntervals}/12</Text>
+            <Text className="text-xs text-muted-foreground">{filledIntervals}/12</Text>
           </div>
         )
       },
@@ -224,14 +224,14 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
               <div className="flex items-center gap-1">
                 <span>Projected P&L</span>
                 <Tooltip content="Estimated P&L if all remaining intervals fill at current RT prices">
-                  <IconInfoCircle className="text-gray-400 text-xs" />
+                  <IconInfoCircle className="text-muted-foreground text-xs" />
                 </Tooltip>
               </div>
             ),
             dataIndex: "projectedPL",
             render: (_: any, record: TradePosition) => {
               const { projectedPL } = calculateLivePL(record)
-              return <span className="text-gray-600">${projectedPL.toFixed(2)}</span>
+              return <span className="text-muted-foreground">${projectedPL.toFixed(2)}</span>
             },
           },
         ]
@@ -315,14 +315,14 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
         title: "Slice P&L",
         dataIndex: "slicePL",
         render: (value: number, record: RTSlice) =>
-          record.filled ? formatCurrency(value) : <span className="text-gray-400">--</span>,
+          record.filled ? formatCurrency(value) : <span className="text-muted-foreground">--</span>,
         width: 100,
       },
     ]
 
     return (
-      <div className="p-4 bg-gray-50">
-        <Title level={6} className="mb-3">
+      <div className="p-4 bg-card border border-border rounded-lg">
+        <Title level={6} className="mb-3 text-foreground">
           5-Minute RT Slices - Hour {record.hour}
         </Title>
         <Table
@@ -333,7 +333,7 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
           className="mb-3"
           rowClassName={(record: RTSlice) => (record.filled ? "" : "opacity-50")}
         />
-        <div className="flex justify-between text-sm text-gray-600">
+        <div className="flex justify-between text-sm text-muted-foreground">
           <span>Total Filled: {rtSlices.filter((s) => s.filled).length}/12 intervals</span>
           <span>
             Live P&L: {formatCurrency(rtSlices.filter((s) => s.filled).reduce((sum, s) => sum + s.slicePL, 0))}
@@ -367,18 +367,18 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
       <Tabs activeTab={activeTab} onChange={setActiveTab}>
         <TabPane key="open" title={`Open Positions (${positions.length})`}>
           {positions.length > 0 && (
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+            <div className="mb-4 p-3 bg-accent/10 border border-accent/20 rounded-lg">
               <div className="flex justify-between items-center">
-                <Text className="font-medium">Portfolio Summary</Text>
+                <Text className="font-medium text-foreground">Portfolio Summary</Text>
                 <Space size="large">
                   <div className="text-center">
-                    <Text className="text-sm text-gray-600 block">Live P&L</Text>
-                    <Text className="font-bold">{formatCurrency(totalLivePL)}</Text>
+                    <Text className="text-sm text-muted-foreground block">Live P&L</Text>
+                    <Text className="font-bold text-foreground">{formatCurrency(totalLivePL)}</Text>
                   </div>
                   {showProjectedPL && (
                     <div className="text-center">
-                      <Text className="text-sm text-gray-600 block">Projected P&L</Text>
-                      <Text className="font-bold text-gray-600">${totalProjectedPL.toFixed(2)}</Text>
+                      <Text className="text-sm text-muted-foreground block">Projected P&L</Text>
+                      <Text className="font-bold text-muted-foreground">${totalProjectedPL.toFixed(2)}</Text>
                     </div>
                   )}
                 </Space>
@@ -405,8 +405,8 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
             }}
             noDataElement={
               <div className="text-center py-8">
-                <Text className="text-gray-500">No open positions</Text>
-                <Text className="text-sm text-gray-400 block mt-1">Submit trades to see positions here</Text>
+                <Text className="text-muted-foreground">No open positions</Text>
+                <Text className="text-sm text-muted-foreground block mt-1">Submit trades to see positions here</Text>
               </div>
             }
           />
@@ -422,17 +422,17 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
                 size="small"
               />
 
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <div className="mt-4 p-3 bg-card border border-border rounded-lg">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
-                    <Text className="text-sm text-gray-600 block">Total Closed P&L</Text>
-                    <Text className="font-bold">
+                    <Text className="text-sm text-muted-foreground block">Total Closed P&L</Text>
+                    <Text className="font-bold text-foreground">
                       {formatCurrency(closedPositions.reduce((sum, pos) => sum + pos.finalPL, 0))}
                     </Text>
                   </div>
                   <div>
-                    <Text className="text-sm text-gray-600 block">Win Rate</Text>
-                    <Text className="font-bold">
+                    <Text className="text-sm text-muted-foreground block">Win Rate</Text>
+                    <Text className="font-bold text-foreground">
                       {(
                         (closedPositions.filter((pos) => pos.finalPL > 0).length / closedPositions.length) *
                         100
@@ -441,15 +441,15 @@ export default function PositionsTable({ positions, currentTime }: PositionsTabl
                     </Text>
                   </div>
                   <div>
-                    <Text className="text-sm text-gray-600 block">Avg Trade</Text>
-                    <Text className="font-bold">
+                    <Text className="text-sm text-muted-foreground block">Avg Trade</Text>
+                    <Text className="font-bold text-foreground">
                       $
                       {(closedPositions.reduce((sum, pos) => sum + pos.finalPL, 0) / closedPositions.length).toFixed(2)}
                     </Text>
                   </div>
                   <div>
-                    <Text className="text-sm text-gray-600 block">Settled</Text>
-                    <Text className="font-bold">
+                    <Text className="text-sm text-muted-foreground block">Settled</Text>
+                    <Text className="font-bold text-foreground">
                       {closedPositions.filter((pos) => pos.settled).length}/{closedPositions.length}
                     </Text>
                   </div>
