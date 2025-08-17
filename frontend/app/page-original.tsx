@@ -4,13 +4,20 @@ import { useState, useEffect } from "react"
 import { ConfigProvider } from "@arco-design/web-react"
 import "@arco-design/web-react/dist/css/arco.css"
 
-// Import your existing components with all backend logic preserved
-import ChartsRowGlass from "@/components/charts-row-glass"
-import ContextTilesGlass from "@/components/context-tiles-glass" 
-import TradeTicketPanelGlass from "@/components/trade-ticket-panel-glass"
-import PositionsTableGlass from "@/components/positions-table-glass"
+// New glassmorphism components
+import { Toolbar } from "@/components/ui/toolbar"
+import { GlassCard } from "@/components/ui/glass-card"
 
-// Keep your existing data types unchanged
+// Hooks
+import { useTheme } from "@/hooks/use-theme"
+
+// Legacy components (using existing charts)
+import ChartsRow from "@/components/charts-row"
+import ContextTiles from "@/components/context-tiles"
+import TradeTicketPanel from "@/components/trade-ticket-panel"
+import PositionsTable from "@/components/positions-table"
+
+// Mock data types
 export interface LMPData {
   timestamp: string
   lmp: number
@@ -30,7 +37,7 @@ export interface TradePosition {
   projectedPL?: number
 }
 
-export default function EnergyTradingAppGlass() {
+export default function EnergyTradingApp() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedNode, setSelectedNode] = useState("PJM-RTO")
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -39,17 +46,16 @@ export default function EnergyTradingAppGlass() {
   const [positions, setPositions] = useState<TradePosition[]>([])
   const [isTradeDrawerOpen, setIsTradeDrawerOpen] = useState(false)
 
-  // Keep all your existing state management logic
+  // Add loading and error states
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Force light theme on mount to match glass design
+  // Force light theme on mount to match reference design
   useEffect(() => {
     document.documentElement.classList.remove('dark')
-    document.body.style.background = 'linear-gradient(135deg, #f5f7fb 0%, #f3f6fa 100%)'
   }, [])
 
-  // Keep your existing time update logic
+  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
@@ -57,7 +63,7 @@ export default function EnergyTradingAppGlass() {
     return () => clearInterval(timer)
   }, [])
 
-  // Keep your existing API polling logic unchanged
+  // Real API polling for LMP data every 5 minutes
   useEffect(() => {
     const fetchLMPData = async () => {
       try {
@@ -97,7 +103,7 @@ export default function EnergyTradingAppGlass() {
         console.error('❌ Failed to fetch LMP data:', error)
         setError(error instanceof Error ? error.message : 'Unknown error occurred')
         
-        // Keep your existing fallback mock data
+        // Fallback to mock data if API fails
         const mockData: LMPData[] = Array.from({ length: 6 }, (_, i) => {
           const timestamp = new Date(Date.now() - (5 - i) * 5 * 60 * 1000)
           const basePrice = 45 + Math.random() * 20
@@ -119,7 +125,6 @@ export default function EnergyTradingAppGlass() {
     return () => clearInterval(interval)
   }, [selectedNode])
 
-  // Keep your existing trade submit logic
   const handleTradeSubmit = (trade: Omit<TradePosition, "id" | "filledIntervals" | "livePL">) => {
     const newTrade: TradePosition = {
       ...trade,
@@ -130,7 +135,6 @@ export default function EnergyTradingAppGlass() {
     setPositions((prev) => [...prev, newTrade])
   }
 
-  // Keep your existing date change logic
   const handleDateChange = (date: Date) => {
     if (date instanceof Date && !isNaN(date.getTime())) {
       setSelectedDate(date)
@@ -140,7 +144,7 @@ export default function EnergyTradingAppGlass() {
     }
   }
 
-  // Keep your existing interval calculation
+  // Calculate current interval
   const getCurrentInterval = () => {
     const now = currentTime
     const minutes = now.getMinutes()
@@ -157,38 +161,24 @@ export default function EnergyTradingAppGlass() {
 
   return (
     <ConfigProvider>
-      {/* Glass Theme Background */}
-      <div 
-        className="min-h-screen p-6"
-        style={{
-          background: 'linear-gradient(135deg, #f5f7fb 0%, #f3f6fa 100%)'
-        }}
-      >
-        {/* Main Glass Container */}
-        <div 
-          className="rounded-[20px] min-h-[calc(100vh-48px)] shadow-lg border border-white/60 overflow-hidden"
-          style={{
-            background: 'rgba(255, 255, 255, 0.55)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)'
-          }}
-        >
+      <div className="min-h-screen" style={{ background: '#f2f5f9' }}>
+        {/* Main Container */}
+        <div className="glass rounded-[40px] m-6 min-h-[calc(100vh-48px)] shadow-glass-lg border border-white/60 backdrop-blur-[14px] backdrop-saturate-[140%]">
           
-          {/* Header Section - Glass Style */}
+          {/* Header Section */}
           <div className="p-8 border-b border-white/30">
             <div className="flex items-center justify-between">
               {/* Left - Title and Controls */}
               <div className="flex items-center gap-8">
-                <h1 className="text-[28px] font-bold text-slate-900">Virtual Energy Trading</h1>
+                <h1 className="text-[28px] font-bold text-ink">Virtual Energy Trading</h1>
                 
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-600 font-medium">Node</span>
+                    <span className="text-14 text-muted font-medium">Node</span>
                     <select 
                       value={selectedNode}
                       onChange={(e) => setSelectedNode(e.target.value)}
-                      className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-900 border border-white/40 bg-white/50 backdrop-blur-sm hover:bg-white/60 transition-all"
-                      style={{ backdropFilter: 'blur(8px)' }}
+                      className="glass rounded-field px-3 py-1.5 text-14 font-medium text-ink border border-white/40 bg-white/30"
                     >
                       <option value="PJM-RTO">PJM-RTO</option>
                       <option value="NYISO">NYISO</option>
@@ -198,12 +188,11 @@ export default function EnergyTradingAppGlass() {
                     </select>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-14 text-muted">
                     <span>⌚</span>
                     <button 
                       onClick={() => setTimezone(timezone === "UTC" ? "ET" : "UTC")}
-                      className="rounded-full px-3 py-1 text-sm font-medium text-slate-900 border border-white/40 bg-white/50 hover:bg-white/60 transition-all"
-                      style={{ backdropFilter: 'blur(8px)' }}
+                      className="glass rounded-field px-2 py-1 text-14 font-medium text-ink border border-white/40 bg-white/30 hover:bg-white/40"
                     >
                       {timezone}
                     </button>
@@ -214,121 +203,83 @@ export default function EnergyTradingAppGlass() {
               {/* Right - Trade Button */}
               <button 
                 onClick={() => setIsTradeDrawerOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium px-6 py-3 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2"
+                className="bg-accent hover:bg-accent/90 text-white font-medium px-6 py-3 rounded-field shadow-glass-lg transition-all duration-200 flex items-center gap-2"
               >
-                <span className="text-lg">+</span>
+                <span>+</span>
                 <span>Trade</span>
               </button>
             </div>
           </div>
 
-          {/* KPI Section - Glass Style */}
+          {/* KPI Section */}
           <div className="p-8 border-b border-white/30">
             <div className="grid grid-cols-2 gap-8 mb-8">
               
-              {/* Current Interval - Glass Card */}
-              <div 
-                className="rounded-2xl p-6 border border-white/40 shadow-sm"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.4)',
-                  backdropFilter: 'blur(12px)'
-                }}
-              >
-                <div className="text-sm text-slate-600 font-medium mb-2">Current interval</div>
+              {/* Current Interval */}
+              <div className="glass rounded-card p-6 bg-white/30 border border-white/40">
+                <div className="text-14 text-muted font-medium mb-2">Current interval</div>
                 <div className="flex items-center gap-4 mb-2">
-                  <span className="text-2xl font-bold text-slate-900">
+                  <span className="text-24 font-bold text-ink">
                     {interval.current}
                   </span>
-                  <span className="text-2xl text-slate-500">→</span>
-                  <span className="text-2xl font-bold text-slate-900">
+                  <span className="text-24 text-muted">→</span>
+                  <span className="text-24 font-bold text-ink">
                     {interval.next}
                   </span>
-                  <span className="text-sm text-slate-600 font-medium">{timezone}</span>
+                  <span className="text-14 text-muted font-medium">{timezone}</span>
                 </div>
-                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                  Last 6 intervals
-                </button>
               </div>
 
-              {/* Latest LMP - Glass Card */}
-              <div 
-                className="rounded-2xl p-6 border border-white/40 shadow-sm"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.4)',
-                  backdropFilter: 'blur(12px)'
-                }}
-              >
+              {/* Latest LMP */}
+              <div className="glass rounded-card p-6 bg-white/30 border border-white/40">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="text-sm text-slate-600 font-medium">Latest LMP</div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="text-14 text-muted font-medium">Latest LMP</div>
+                  <div className="w-2 h-2 bg-buy rounded-full animate-pulse"></div>
                 </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-[32px] font-bold text-slate-900 font-mono">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-32 font-bold text-ink tabular-nums">
                     ${latestLMP?.lmp.toFixed(2) || "52.42"}
                   </span>
-                  <span className="text-sm text-green-600 font-medium">Live</span>
+                  <span className="text-14 text-buy font-medium">+Live</span>
                 </div>
-                <div className="text-sm text-slate-500">
-                  {latestLMP ? new Date(latestLMP.timestamp).toLocaleTimeString() : "Last techno urst"}
+                <div className="text-14 text-muted">
+                  {latestLMP ? new Date(latestLMP.timestamp).toLocaleTimeString() : "Last update: 1:35:00 PM"}
                 </div>
               </div>
             </div>
 
-            {/* Last 6 Intervals - Glass Tiles */}
+            {/* Last 6 Intervals */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">Last 6cix. intervals</h3>
-                <span className="text-xs text-slate-500">00/17/2023</span>
+                <h3 className="text-16 font-semibold text-ink">Last 6cix. intervals</h3>
+                <span className="text-12 text-muted">00/17/2023</span>
               </div>
               
-              <div className="flex gap-3 overflow-x-auto pb-2">
-              {/* Real backend data for last 6 intervals */}
-              {lmpData.map((item, index) => (
-                  <div 
-                    key={index}
-                    className={`
-                      flex-shrink-0 rounded-full px-4 py-3 min-w-[140px] border border-white/40 shadow-sm transition-all
-                      ${index === lmpData.length - 1 ? 'ring-2 ring-blue-500/30' : ''}
-                    `}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.4)',
-                      backdropFilter: 'blur(12px)'
-                    }}
-                  >
+              <div className="flex gap-3">
+                {/* Mock interval chips matching the design */}
+                {[
+                  { time: "$47.50", label: "Latent price", value: "$47.50", change: null },
+                  { time: "$47.83", label: "Previous day", value: "44.4.5%", change: null },
+                  { time: "44.63", label: "Precast (0)", value: "4.0 4.5", change: null },
+                  { time: "07.95", label: "700", value: null, change: null },
+                  { time: "52.42", label: "Last price", value: "+5 62.42", change: "positive" }
+                ].map((item, index) => (
+                  <div key={index} className={`glass rounded-chip px-4 py-3 min-w-[140px] bg-white/30 border border-white/40 ${index === 4 ? 'ring-2 ring-accent/30' : ''}`}>
                     <div className="text-center">
-                      <div className="text-xl font-bold text-slate-900 font-mono mb-1">
-                        ${item.lmp.toFixed(2)}
+                      <div className="text-20 font-bold text-ink tabular-nums mb-1">
+                        {item.time}
                       </div>
-                      <div className="text-xs text-slate-600 font-medium mb-1">
-                        {new Date(item.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                      <div className="text-12 text-muted font-medium">
+                        {item.label}
                       </div>
-                      <div className={`text-sm font-medium ${index === lmpData.length - 1 ? 'text-green-600' : 'text-slate-700'}`}>
-                        ${item.energy.toFixed(2)} E
-                      </div>
+                      {item.value && (
+                        <div className={`text-14 font-medium ${item.change === 'positive' ? 'text-buy' : 'text-ink'}`}>
+                          {item.value}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
-              {/* Show loading state when no data */}
-              {lmpData.length === 0 && (
-                <div className="flex gap-3">
-                  {[...Array(6)].map((_, index) => (
-                    <div 
-                      key={index}
-                      className="flex-shrink-0 rounded-full px-4 py-3 min-w-[140px] border border-white/40 shadow-sm animate-pulse"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.4)',
-                        backdropFilter: 'blur(12px)'
-                      }}
-                    >
-                      <div className="text-center">
-                        <div className="bg-slate-300 h-6 w-16 mx-auto mb-1 rounded"></div>
-                        <div className="bg-slate-200 h-3 w-12 mx-auto mb-1 rounded"></div>
-                        <div className="bg-slate-200 h-4 w-14 mx-auto rounded"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
               </div>
             </div>
           </div>
@@ -340,31 +291,33 @@ export default function EnergyTradingAppGlass() {
               {/* Left Column - Charts & Analytics */}
               <div className="col-span-8 space-y-8">
                 
-                {/* Charts Section - Keep your existing logic */}
+                {/* Charts Section */}
                 <div>
-                  <ChartsRowGlass selectedDate={selectedDate} selectedNode={selectedNode} />
+                  <ChartsRow selectedDate={selectedDate} selectedNode={selectedNode} />
                 </div>
 
-                {/* Context Analytics - Keep your existing logic */}
+                {/* Context Analytics */}
                 <div>
-                  <ContextTilesGlass selectedDate={selectedDate} selectedNode={selectedNode} />
+                  <ContextTiles selectedDate={selectedDate} selectedNode={selectedNode} />
                 </div>
               </div>
 
               {/* Right Column - Trading */}
               <div className="col-span-4 space-y-6">
                 
-                {/* Trade Ticket - Keep your existing logic */}
-                <div>
-                  <TradeTicketPanelGlass 
+                {/* Trade Ticket */}
+                <div className="glass rounded-card p-6 bg-white/30 border border-white/40">
+                  <h3 className="text-18 font-semibold text-ink mb-4">Trade Ticket</h3>
+                  <TradeTicketPanel 
                     currentTime={currentTime} 
                     onTradeSubmit={handleTradeSubmit} 
                   />
                 </div>
 
-                {/* Positions - Keep your existing logic */}
-                <div>
-                  <PositionsTableGlass 
+                {/* Positions */}
+                <div className="glass rounded-card p-6 bg-white/30 border border-white/40">
+                  <h3 className="text-18 font-semibold text-ink mb-4">Positions Management</h3>
+                  <PositionsTable 
                     positions={positions} 
                     currentTime={currentTime} 
                   />

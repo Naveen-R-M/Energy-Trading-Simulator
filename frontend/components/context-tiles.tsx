@@ -55,8 +55,8 @@ const generateFuelMixData = () => [
 const LoadTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card p-3 border border-border rounded-lg shadow-lg text-foreground">
-        <p className="font-medium text-foreground">Hour {label}</p>
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg text-gray-900">
+        <p className="font-medium text-gray-900">Hour {label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }}>
             {entry.name}: {entry.value?.toFixed(0)} MW
@@ -200,28 +200,28 @@ const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNo
               {/* Load Actual vs Forecast */}
               <Card>
                 <div className="flex items-center justify-between mb-4">
-                  <Title level={6} className="mb-0 text-white">
+                  <Title level={6} className="mb-0 text-ink">
                     Load: Actual vs Forecast
                   </Title>
-                  <Text className="text-sm text-gray-400">
+                  <span className="text-14 text-muted">
                     {selectedDate.toLocaleDateString()}
-                  </Text>
+                  </span>
                 </div>
                 <div className="h-48">
                   {loadLoading ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent mx-auto mb-2"></div>
-                        <Text className="text-xs text-muted-foreground">Loading load data...</Text>
+                        <span className="text-12 text-muted">Loading load data...</span>
                       </div>
                     </div>
                   ) : loadError ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
-                        <Text className="text-xs text-destructive mb-2">Error: {loadError}</Text>
+                        <span className="text-12 text-red-600 mb-2">Error: {loadError}</span>
                         <button 
                           onClick={() => fetchLoadData(selectedDate)}
-                          className="px-2 py-1 bg-accent text-accent-foreground rounded text-xs hover:bg-accent/90"
+                          className="px-2 py-1 bg-accent text-white rounded text-12 hover:bg-accent/90"
                         >
                           Retry
                         </button>
@@ -230,28 +230,28 @@ const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNo
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={loadData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis
                           dataKey="time"
-                          tick={{ fontSize: 10, fill: 'var(--color-foreground)' }}
+                          tick={{ fontSize: 10, fill: '#64748b' }}
                           interval={2}
-                          axisLine={{ stroke: 'var(--color-border)' }}
+                          axisLine={{ stroke: '#e2e8f0' }}
                         />
                         <YAxis
-                          tick={{ fontSize: 10, fill: 'var(--color-foreground)' }}
-                          axisLine={{ stroke: 'var(--color-border)' }}
-                          label={{ value: 'MW', angle: -90, position: 'insideLeft', style: { fill: 'var(--color-foreground)' } }}
+                          tick={{ fontSize: 10, fill: '#64748b' }}
+                          axisLine={{ stroke: '#e2e8f0' }}
+                          label={{ value: 'MW', angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
                         />
                         <RechartsTooltip content={<LoadTooltip />} />
                         <Legend />
-                        <Bar dataKey="actual" fill="var(--color-accent)" name="Actual" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="forecast" fill="var(--color-muted)" name="Forecast" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="actual" fill="#4f46e5" name="Actual" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="forecast" fill="#64748b" name="Forecast" radius={[2, 2, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
                 </div>
                 {Object.keys(loadSummary).length > 0 && (
-                  <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                  <div className="mt-3 flex justify-between text-12 text-muted">
                     <span>Peak Load: {Math.round(loadSummary.peak_load_mw || 0).toLocaleString()} MW</span>
                     <span>Forecast Error: ±{Math.round(loadSummary.avg_forecast_error_mw || 0)} MW</span>
                     <span>Accuracy: {(loadSummary.forecast_accuracy_percent || 0).toFixed(1)}%</span>
@@ -259,7 +259,7 @@ const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNo
                 )}
                 
                 {/* Enhanced Debug info */}
-                <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                <div className="mt-2 text-12 text-muted space-y-1">
                   <div>Data points: {loadData.length} • Loading: {loadLoading ? 'Yes' : 'No'} • Error: {loadError || 'None'}</div>
                   {loadData.length > 0 && (
                     <>
@@ -272,8 +272,8 @@ const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNo
               </Card>
 
               {/* Fuel Mix */}
-              <Card className="bg-card border-border">
-                <Title level={6} className="mb-4 text-foreground">
+              <Card className="glass rounded-card p-6 bg-white/30 border border-white/40">
+                <Title level={6} className="mb-4 text-ink">
                   Current Fuel Mix
                 </Title>
                 <div className="h-48">
@@ -297,35 +297,35 @@ const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNo
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="mt-3 text-sm text-muted-foreground">
-                  <Text className="text-foreground">
+                <div className="mt-3 text-14 text-muted">
+                  <span className="text-ink">
                     Marginal fuel: {fuelMixData[0].name} ({fuelMixData[0].value}%)
-                  </Text>
+                  </span>
                 </div>
               </Card>
             </div>
 
             {/* Additional Context Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <Card className="bg-accent/10 border border-accent/20">
+              <Card className="glass rounded-card p-4 bg-white/30 border border-white/40">
                 <div className="text-center">
-                  <Text className="text-sm text-muted-foreground block">System Conditions</Text>
-                  <Text className="text-lg font-semibold text-accent">Normal</Text>
-                  <Text className="text-xs text-muted-foreground">No alerts active</Text>
+                  <span className="text-14 text-muted block">System Conditions</span>
+                  <span className="text-18 font-semibold text-accent">Normal</span>
+                  <span className="text-12 text-muted">No alerts active</span>
                 </div>
               </Card>
-              <Card className="bg-primary/10 border border-primary/20">
+              <Card className="glass rounded-card p-4 bg-white/30 border border-white/40">
                 <div className="text-center">
-                  <Text className="text-sm text-muted-foreground block">Reserve Margin</Text>
-                  <Text className="text-lg font-semibold text-primary">12.5%</Text>
-                  <Text className="text-xs text-muted-foreground">Above minimum</Text>
+                  <span className="text-14 text-muted block">Reserve Margin</span>
+                  <span className="text-18 font-semibold text-buy">12.5%</span>
+                  <span className="text-12 text-muted">Above minimum</span>
                 </div>
               </Card>
-              <Card className="bg-secondary/10 border border-secondary/20">
+              <Card className="glass rounded-card p-4 bg-white/30 border border-white/40">
                 <div className="text-center">
-                  <Text className="text-sm text-muted-foreground block">Transmission</Text>
-                  <Text className="text-lg font-semibold text-secondary">2 Constraints</Text>
-                  <Text className="text-xs text-muted-foreground">Minor congestion</Text>
+                  <span className="text-14 text-muted block">Transmission</span>
+                  <span className="text-18 font-semibold text-warning">2 Constraints</span>
+                  <span className="text-12 text-muted">Minor congestion</span>
                 </div>
               </Card>
             </div>

@@ -4,7 +4,24 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Dark Blue Professional Energy Trading Theme */
+  /* Glassmorphism Design System - Light Theme (Default) */
+  --bg: #f2f5f9;
+  --glass: 255, 255, 255;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --accent: #4f46e5;
+  --buy: #16a34a;
+  --sell: #ef4444;
+  --warning: #f59e0b;
+  
+  /* Glass system tokens */
+  --radius-card: 20px;
+  --radius-field: 12px;
+  --radius-chip: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 30px rgba(2, 6, 23, 0.08);
+  
+  /* Legacy Dark Blue Professional Energy Trading Theme (preserved) */
   --background: #0f1419; /* Very dark blue-black */
   --foreground: #ffffff; /* Pure white text */
   --card: #1a2332; /* Dark blue card background */
@@ -41,7 +58,21 @@
 }
 
 .dark {
-  /* Same tokens for consistent dark theme */
+  /* Dark theme variant of glassmorphism */
+  --bg: #0f172a;
+  --glass: 255, 255, 255;
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --accent: #6366f1;
+  --buy: #22c55e;
+  --sell: #f87171;
+  --warning: #fbbf24;
+  
+  /* Dark theme glass adjustments */
+  --glass-surface-alpha: 0.08;
+  --glass-border-alpha: 0.2;
+  
+  /* Legacy dark tokens (preserved) */
   --background: #0f1419;
   --foreground: #ffffff;
   --card: #1a2332;
@@ -123,13 +154,35 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    /* Enhanced dark background */
-    background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+    @apply font-sans antialiased;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     letter-spacing: -0.01em;
-    color: #ffffff;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Glass morphism utilities */
+  .glass {
+    background: rgba(var(--glass), 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+  
+  .dark .glass {
+    background: rgba(var(--glass), 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Tabular numbers for trading data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    font-family: 'Roboto Mono', monospace;
   }
 
   /* Enhanced typography hierarchy */
@@ -279,6 +332,49 @@ div[class=""], div:not([class]) {
 /* Force any flex/grid containers to be transparent */
 [style*="display: flex"], [style*="display: grid"] {
   background: transparent !important;
+}
+
+/* Glass component styling */
+.glass-select .arco-select-view {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-picker .arco-picker {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-input .arco-input {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-button {
+  background: rgba(var(--glass), 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  color: var(--ink) !important;
+}
+
+.glass-button:hover {
+  background: rgba(var(--glass), 0.5) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Dark theme adjustments for glass components */
+.dark .glass-select .arco-select-view,
+.dark .glass-picker .arco-picker,
+.dark .glass-input .arco-input,
+.dark .glass-button {
+  background: rgba(var(--glass), 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Enhanced Arco Design dark theme overrides */
@@ -605,7 +701,48 @@ div[class=""], div:not([class]) {
   border-color: #3b82f6;
 }
 
-/* Utility classes for consistent spacing and colors */
+/* Glassmorphism color utilities */
+.text-ink {
+  color: var(--ink) !important;
+}
+
+.text-muted {
+  color: var(--muted) !important;
+}
+
+.text-accent {
+  color: var(--accent) !important;
+}
+
+.text-buy {
+  color: var(--buy) !important;
+}
+
+.text-sell {
+  color: var(--sell) !important;
+}
+
+.text-warning {
+  color: var(--warning) !important;
+}
+
+.bg-accent {
+  background-color: var(--accent) !important;
+}
+
+.bg-buy {
+  background-color: var(--buy) !important;
+}
+
+.bg-sell {
+  background-color: var(--sell) !important;
+}
+
+.bg-warning {
+  background-color: var(--warning) !important;
+}
+
+/* Legacy utility classes for backward compatibility */
 .bg-trading-dark {
   background-color: #0f1419 !important;
 }

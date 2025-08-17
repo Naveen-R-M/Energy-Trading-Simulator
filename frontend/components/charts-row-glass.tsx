@@ -19,7 +19,7 @@ import type { LMPData } from "@/app/page"
 
 const { Option } = Select
 
-interface ChartsRowProps {
+interface ChartsRowGlassProps {
   selectedDate: Date
   selectedNode: string
 }
@@ -34,10 +34,10 @@ interface RTDataPoint {
   hour: number
 }
 
-// Utility function to generate time range
+// Keep all your existing utility functions unchanged
 const getTimeRange = (hours: number) => {
   const now = new Date()
-  const endTime = new Date(Math.floor(now.getTime() / (5 * 60 * 1000)) * (5 * 60 * 1000)) // Floor to 5-minute boundary
+  const endTime = new Date(Math.floor(now.getTime() / (5 * 60 * 1000)) * (5 * 60 * 1000))
   const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000)
   
   return {
@@ -46,70 +46,28 @@ const getTimeRange = (hours: number) => {
   }
 }
 
-// Generate day-ahead hourly data (keeping mock for now)
-const generateDayAheadData = () => {
-  const data = []
-  for (let hour = 0; hour < 24; hour++) {
-    const basePrice = 45 + Math.sin(((hour - 6) * Math.PI) / 12) * 12
-    data.push({
-      hour,
-      time: `${String(hour).padStart(2, "0")}:00`,
-      daLmp: basePrice + Math.random() * 4 - 2,
-    })
-  }
-  return data
-}
-
-// Generate spread data (keeping mock for now)
-const generateSpreadData = () => {
-  const data = []
-  const currentHour = new Date().getHours()
-
-  for (let interval = 0; interval < 12; interval++) {
-    const minute = interval * 5
-    const rtPrice = 50 + Math.random() * 10 - 5
-    const daPrice = 48 + Math.random() * 6 - 3
-    const spread = rtPrice - daPrice
-
-    data.push({
-      interval,
-      time: `${String(currentHour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-      rtLmp: rtPrice,
-      daLmp: daPrice,
-      spread,
-      profitable: spread > 1 ? "buy" : spread < -1 ? "sell" : "neutral",
-    })
-  }
-
-  return data
-}
-
-const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: ChartsRowProps) {
+const ChartsRowGlass = React.memo(function ChartsRowGlass({ selectedDate, selectedNode }: ChartsRowGlassProps) {
   const [showComponents, setShowComponents] = useState(false)
   const [rtTimeRange, setRtTimeRange] = useState("24h")
   
-  // Real-time chart data state
+  // Keep all your existing state management unchanged
   const [rtData, setRtData] = useState<RTDataPoint[]>([])
   const [rtLoading, setRtLoading] = useState(true)
   const [rtError, setRtError] = useState<string | null>(null)
   const [lastRtUpdate, setLastRtUpdate] = useState<Date | null>(null)
   
-  // Day-ahead chart data state
   const [daData, setDaData] = useState<any[]>([])
   const [daLoading, setDaLoading] = useState(true)
   const [daError, setDaError] = useState<string | null>(null)
   
-  // Spread chart data state
   const [spreadData, setSpreadData] = useState<any[]>([])
   const [spreadLoading, setSpreadLoading] = useState(true)
   const [spreadError, setSpreadError] = useState<string | null>(null)
   const [currentHour, setCurrentHour] = useState(new Date().getHours())
   
-  // Use refs to store current values for the interval callback
   const rtTimeRangeRef = useRef(rtTimeRange)
   const selectedNodeRef = useRef(selectedNode)
   
-  // Update refs when values change
   useEffect(() => {
     rtTimeRangeRef.current = rtTimeRange
   }, [rtTimeRange])
@@ -118,18 +76,16 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
     selectedNodeRef.current = selectedNode
   }, [selectedNode])
 
-  // Fetch spread data (RT vs DA for current hour)
+  // Keep all your existing fetch functions completely unchanged
   const fetchSpreadData = async () => {
     try {
       setSpreadLoading(true)
       setSpreadError(null)
       
       const now = new Date()
-      // Use current UTC hour for consistency with backend
       const hour = now.getUTCHours()
       setCurrentHour(hour)
       
-      // Create hour boundaries in UTC
       const hourStart = new Date(now)
       hourStart.setUTCHours(hour, 0, 0, 0)
       const hourEnd = new Date(now)
@@ -145,7 +101,6 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
         utcHour: hour
       })
       
-      // Fetch DA price for this hour
       console.log('📅 Fetching DA data for hour...')
       const daResponse = await fetch(`/api/v1/dayahead/range?start=${startStr}&end=${endStr}&market=pjm&location=${selectedNode}`)
       if (!daResponse.ok) {
@@ -153,7 +108,6 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
       }
       const daResult = await daResponse.json()
       
-      // Fetch RT prices for this hour (5-minute intervals)
       console.log('🕰 Fetching RT data for hour...')
       const rtResponse = await fetch(`/api/v1/realtime/range?start=${startStr}&end=${endStr}&market=pjm&location=${selectedNode}`)
       if (!rtResponse.ok) {
@@ -177,14 +131,12 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
         throw new Error(`No RT data found for hour ${hour}. This hour may not have current data yet.`)
       }
       
-      // Get DA price for this hour (should be 1 data point)
       const daPrice = parseFloat(daResult.data[0].lmp)
       
       if (!daPrice || daPrice <= 0) {
         throw new Error('Invalid DA price received from backend')
       }
       
-      // Calculate spread for each RT interval in this hour
       const spreadPoints = rtResult.data.map((rtItem: any, index: number) => {
         const rtPrice = parseFloat(rtItem.lmp) || 0
         const spread = rtPrice - daPrice
@@ -222,12 +174,13 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
       setSpreadLoading(false)
     }
   }
+
   const fetchDayAheadData = async (date: Date) => {
     try {
       setDaLoading(true)
       setDaError(null)
       
-      const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
+      const dateStr = date.toISOString().split('T')[0]
       const apiUrl = `/api/v1/dayahead/date/${dateStr}?market=pjm&location=${selectedNode}`
       
       console.log(`📅 Fetching DA data for ${dateStr}:`, apiUrl)
@@ -250,7 +203,6 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
         throw new Error('Invalid DA data format received from backend')
       }
       
-      // Transform backend data to chart format
       const transformedDaData = result.data.map((item: any) => {
         const timestamp = new Date(item.interval_start_utc)
         const hour = timestamp.getHours()
@@ -281,6 +233,7 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
       setDaLoading(false)
     }
   }
+
   const fetchRealTimeData = async (timeRange: string) => {
     try {
       setRtLoading(true)
@@ -289,10 +242,8 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
       let apiUrl: string
       
       if (timeRange === "24h") {
-        // Use the optimized 24h endpoint
         apiUrl = `/api/v1/realtime/last24h?market=pjm&location=${selectedNode}`
       } else {
-        // Use range endpoint for custom time windows
         const hours = timeRange === "1h" ? 1 : timeRange === "6h" ? 6 : 24
         const { start, end } = getTimeRange(hours)
         apiUrl = `/api/v1/realtime/range?start=${start}&end=${end}&market=pjm&location=${selectedNode}`
@@ -318,7 +269,6 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
         throw new Error('Invalid RT data format received from backend')
       }
       
-      // Transform backend data to chart format
       const transformedRtData: RTDataPoint[] = result.data.map((item: any) => {
         const timestamp = new Date(item.interval_start_utc)
         
@@ -357,33 +307,29 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
     }
   }
   
-  // Fetch RT data when component mounts or time range changes
+  // Keep all your existing useEffect hooks unchanged
   useEffect(() => {
     fetchRealTimeData(rtTimeRange)
   }, [rtTimeRange, selectedNode])
   
-  // Fetch DA data when date or node changes
   useEffect(() => {
     fetchDayAheadData(selectedDate)
   }, [selectedDate, selectedNode])
   
-  // Fetch spread data when component mounts or node changes
   useEffect(() => {
     fetchSpreadData()
   }, [selectedNode])
   
-  // Auto-refresh spread data every 10 minutes (more frequent than hourly)
   useEffect(() => {
     const interval = setInterval(() => {
       const newHour = new Date().getUTCHours()
       console.log(`🔄 Checking for hour change or refreshing spread data (current UTC hour: ${newHour})...`)
-      fetchSpreadData() // Always refresh to get latest data
-    }, 10 * 60 * 1000) // Check every 10 minutes
+      fetchSpreadData()
+    }, 10 * 60 * 1000)
     
     return () => clearInterval(interval)
   }, [selectedNode])
   
-  // Auto-refresh latest data every 5 minutes + 40 seconds (5:40 cycle)
   useEffect(() => {
     const interval = setInterval(async () => {
       const currentTimeRange = rtTimeRangeRef.current
@@ -392,10 +338,8 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
       console.log(`🔄 Auto-refreshing RT data (${currentTimeRange})...`)
       
       if (currentTimeRange === "24h") {
-        // For 24h view, get full dataset
         await fetchRealTimeData(currentTimeRange)
       } else {
-        // For shorter ranges, append just the latest point
         try {
           console.log('🔍 Fetching latest RT point...')
           const response = await fetch(`/api/v1/realtime/latest?market=pjm&location=${currentNode}`)
@@ -416,11 +360,9 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
             }
             
             setRtData(prevData => {
-              // Check if this point already exists
               const exists = prevData.some(point => point.timestamp === newPoint.timestamp)
               if (!exists) {
                 console.log('➕ Appending new RT data point:', newPoint)
-                // Add new point and keep within time window
                 const timeLimit = currentTimeRange === "1h" ? 12 : currentTimeRange === "6h" ? 72 : 288
                 return [...prevData.slice(-(timeLimit - 1)), newPoint]
               }
@@ -433,20 +375,19 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           console.error('❌ Failed to fetch latest RT point:', error)
         }
       }
-    }, (5 * 60 + 40) * 1000) // 5 minutes 40 seconds
+    }, (5 * 60 + 40) * 1000)
     
     return () => clearInterval(interval)
-  }, []) // Empty dependency array - interval runs independently
+  }, [])
 
-  // No more mock data - all charts use real APIs now
-
+  // Keep your existing tooltip functions
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg text-gray-900">
-          <p className="font-medium text-gray-900">{label}</p>
+        <div className="bg-white/95 backdrop-blur-sm p-3 rounded-xl border border-white/60 shadow-lg">
+          <p className="text-slate-900 font-medium text-sm">{label}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }}>
+            <p key={index} style={{ color: entry.color }} className="text-sm">
               {entry.name}: ${entry.value?.toFixed(2)}
             </p>
           ))}
@@ -460,12 +401,12 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
     if (active && payload && payload.length) {
       const data = payload[0]?.payload
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg text-gray-900">
-          <p className="font-medium text-gray-900">{label}</p>
-          <p className="text-blue-600">RT LMP: ${data?.rtLmp?.toFixed(2)}</p>
-          <p className="text-red-600">DA LMP: ${data?.daLmp?.toFixed(2)}</p>
-          <p className={data?.spread > 0 ? "text-green-600" : "text-red-600"}>Spread: ${data?.spread?.toFixed(2)}</p>
-          <p className="text-sm text-gray-600">
+        <div className="bg-white/95 backdrop-blur-sm p-3 rounded-xl border border-white/60 shadow-lg">
+          <p className="text-slate-900 font-medium text-sm">{label}</p>
+          <p className="text-blue-600 text-sm">RT LMP: ${data?.rtLmp?.toFixed(2)}</p>
+          <p className="text-red-600 text-sm">DA LMP: ${data?.daLmp?.toFixed(2)}</p>
+          <p className={`text-sm ${data?.spread > 0 ? "text-green-600" : "text-red-600"}`}>Spread: ${data?.spread?.toFixed(2)}</p>
+          <p className="text-xs text-slate-600">
             Signal: {data?.profitable === "buy" ? "Buy DA" : data?.profitable === "sell" ? "Sell DA" : "Neutral"}
           </p>
         </div>
@@ -476,16 +417,22 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Real-Time 5-minute Price Chart */}
-      <div className="col-span-1">
-        <div className="glass rounded-card p-6 bg-white/30 border border-white/40 shadow-glass-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-16 font-semibold text-ink mb-0">
-                Real-Time 5-min LMP
-              </h3>
-            </div>
-            <Space>
+      {/* Real-Time 5-minute Price Chart - Glass Style */}
+      <div 
+        className="col-span-1 rounded-2xl p-6 border border-white/40 shadow-sm"
+        style={{
+          background: 'rgba(255, 255, 255, 0.4)',
+          backdropFilter: 'blur(12px)'
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-900 mb-0">
+              Load Time 5-min LMP
+            </h3>
+          </div>
+          <Space>
+            <div className="glass-select">
               <Select 
                 value={rtTimeRange} 
                 onChange={(value) => {
@@ -500,45 +447,43 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
                 <Option value="6h">6h</Option>
                 <Option value="24h">24h</Option>
               </Select>
-              <Switch
-                size="small"
-                checked={showComponents}
-                onChange={setShowComponents}
-                checkedText="Components"
-                uncheckedText="LMP Only"
-              />
-            </Space>
-          </div>
+            </div>
+            <Switch
+              size="small"
+              checked={showComponents}
+              onChange={setShowComponents}
+              checkedText="Components"
+              uncheckedText="LMP Only"
+            />
+          </Space>
+        </div>
 
-          <div className="h-64">{/* Chart content remains the same */}
+        <div className="h-64">
           {rtLoading ? (
-            // Loading state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-2"></div>
-                <span className="text-14 text-muted">Loading {rtTimeRange} data...</span>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <span className="text-sm text-slate-600">Loading {rtTimeRange} data...</span>
               </div>
             </div>
           ) : rtError ? (
-            // Error state
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <span className="text-14 text-red-600 mb-2">❌ Error: {rtError}</span>
+              <div className="text-center space-y-2">
+                <span className="text-sm text-red-600">❌ Error: {rtError}</span>
+                <br />
                 <button 
                   onClick={() => fetchRealTimeData(rtTimeRange)}
-                  className="px-3 py-1 bg-accent text-white rounded text-12 hover:bg-accent/90"
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
                 >
                   Retry
                 </button>
               </div>
             </div>
           ) : rtData.length === 0 ? (
-            // No data state
             <div className="flex items-center justify-center h-full">
-              <span className="text-14 text-muted">No data available for {rtTimeRange}</span>
+              <span className="text-sm text-slate-500">No data available for {rtTimeRange}</span>
             </div>
           ) : (
-            // Chart with real data
             <ResponsiveContainer width="100%" height="100%">
               {showComponents ? (
                 <AreaChart data={rtData}>
@@ -559,8 +504,8 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
                     type="monotone"
                     dataKey="energy"
                     stackId="1"
-                    stroke="#4f46e5"
-                    fill="#4f46e5"
+                    stroke="#2563eb"
+                    fill="#2563eb"
                     fillOpacity={0.6}
                     name="Energy"
                   />
@@ -600,7 +545,7 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
                   <Line 
                     type="monotone" 
                     dataKey="lmp" 
-                    stroke="#4f46e5" 
+                    stroke="#2563eb" 
                     strokeWidth={2} 
                     dot={false} 
                     name="LMP" 
@@ -611,60 +556,60 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           )}
         </div>
 
-        <div className="mt-3 flex justify-between text-14 text-muted">
-          <span>Current: ${rtData.length > 0 ? rtData[rtData.length - 1]?.lmp.toFixed(2) : '--'}</span>
-          <span>{rtTimeRange} Avg: ${rtData.length > 0 ? (rtData.reduce((sum, d) => sum + d.lmp, 0) / rtData.length).toFixed(2) : '--'}</span>
-          <span>Peak: ${rtData.length > 0 ? Math.max(...rtData.map((d) => d.lmp)).toFixed(2) : '--'}</span>
+        <div className="mt-3 flex justify-between text-sm text-slate-500">
+          <span>Latest: ${rtData.length > 0 ? rtData[rtData.length - 1]?.lmp.toFixed(2) : '--'}</span>
+          <span>Range: ${rtData.length > 0 ? `${Math.min(...rtData.map(d => d.lmp)).toFixed(1)} - ${Math.max(...rtData.map(d => d.lmp)).toFixed(1)}` : '--'}</span>
           {rtData.length > 0 && (
-            <span className="text-12">
-              Data points: {rtData.length} • Range: {rtTimeRange}
+            <span className="text-xs">
+              {rtData.length} pts • {rtTimeRange}
             </span>
           )}
         </div>
-        </div>
       </div>
 
-      {/* Day-Ahead Curve Chart */}
-      <div className="col-span-1">
-        <div className="glass rounded-card p-6 bg-white/30 border border-white/40 shadow-glass-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-16 font-semibold text-ink mb-0">
-                Day-Ahead Curve
-              </h3>
-            </div>
-            <span className="text-14 text-muted">{selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</span>
+      {/* Day-Ahead Curve Chart - Glass Style */}
+      <div 
+        className="col-span-1 rounded-2xl p-6 border border-white/40 shadow-sm"
+        style={{
+          background: 'rgba(255, 255, 255, 0.4)',
+          backdropFilter: 'blur(12px)'
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-900 mb-0">
+              Day-Ahead Curve
+            </h3>
           </div>
+          <span className="text-sm text-slate-600">{selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</span>
+        </div>
 
         <div className="h-64">
           {daLoading ? (
-            // Loading state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
-                <span className="text-14 text-muted">Loading day-ahead data...</span>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2"></div>
+                <span className="text-sm text-slate-600">Loading day-ahead data...</span>
               </div>
             </div>
           ) : daError ? (
-            // Error state
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <span className="text-14 text-red-600 mb-2">❌ Error: {daError}</span>
+              <div className="text-center space-y-2">
+                <span className="text-sm text-red-600">❌ Error: {daError}</span>
+                <br />
                 <button 
                   onClick={() => fetchDayAheadData(selectedDate)}
-                  className="px-3 py-1 bg-red-500 text-white rounded text-12 hover:bg-red-600"
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
                 >
                   Retry
                 </button>
               </div>
             </div>
           ) : daData.length === 0 ? (
-            // No data state
             <div className="flex items-center justify-center h-full">
-              <span className="text-14 text-muted">No day-ahead data for {selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</span>
+              <span className="text-sm text-slate-500">No day-ahead data for {selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</span>
             </div>
           ) : (
-            // Chart with real DA data
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={daData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -692,69 +637,68 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           )}
         </div>
 
-        <div className="mt-3 flex justify-between text-sm text-gray-600">
+        <div className="mt-3 flex justify-between text-sm text-slate-500">
           {daData.length > 0 ? (
             <>
               <span>Peak Hour: {daData.reduce((max, d) => (d.daLmp > max.daLmp ? d : max)).hour}:00</span>
               <span>
-                Off-Peak Avg: $
+                Off-Peak: $
                 {(daData.filter((d) => d.hour < 7 || d.hour > 22).reduce((sum, d) => sum + d.daLmp, 0) /
                   Math.max(1, daData.filter((d) => d.hour < 7 || d.hour > 22).length)).toFixed(2)}
               </span>
               <span>
-                On-Peak Avg: $
+                On-Peak: $
                 {(daData.filter((d) => d.hour >= 7 && d.hour <= 22).reduce((sum, d) => sum + d.daLmp, 0) /
                   Math.max(1, daData.filter((d) => d.hour >= 7 && d.hour <= 22).length)).toFixed(2)}
               </span>
             </>
           ) : (
-            <span className="text-muted">No statistics available</span>
+            <span className="text-slate-500">No statistics available</span>
           )}
-        </div>
         </div>
       </div>
 
-      {/* Day-Ahead vs Real-Time Spread Chart */}
-      <div className="col-span-1">
-        <div className="glass rounded-card p-6 bg-white/30 border border-white/40 shadow-glass-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-16 font-semibold text-ink mb-0">
-                RT vs DA Spread
-              </h3>
-            </div>
-            <span className="text-14 text-muted">Hour {currentHour}</span>
-          </div>
+      {/* RT vs DA Spread Chart - Glass Style */}
+      <div 
+        className="col-span-1 rounded-2xl p-6 border border-white/40 shadow-sm"
+        style={{
+          background: 'rgba(255, 255, 255, 0.4)',
+          backdropFilter: 'blur(12px)'
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900 mb-0">
+            RT vs DA Spread
+          </h3>
+          <span className="text-sm text-slate-600">Hour {currentHour}</span>
+        </div>
 
         <div className="h-64">
           {spreadLoading ? (
-            // Loading state
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
-                <span className="text-14 text-muted">Loading spread data...</span>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
+                <span className="text-sm text-slate-600">Loading spread data...</span>
               </div>
             </div>
           ) : spreadError ? (
-            // Error state
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <span className="text-14 text-red-600 mb-2">❌ Error: {spreadError}</span>
+              <div className="text-center space-y-2">
+                <span className="text-sm text-red-600">❌ Error: {spreadError}</span>
+                <br />
                 <button 
                   onClick={() => fetchSpreadData()}
-                  className="px-3 py-1 bg-green-500 text-white rounded text-12 hover:bg-green-600"
+                  className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
                 >
                   Retry
                 </button>
               </div>
             </div>
           ) : spreadData.length === 0 ? (
-            // No data state
             <div className="flex items-center justify-center h-full">
-              <span className="text-14 text-muted">No spread data for hour {currentHour}</span>
+              <span className="text-sm text-slate-500">No spread data for hour {currentHour}</span>
             </div>
           ) : (
-            // Chart with real spread data
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={spreadData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -780,7 +724,6 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
                   }}
                   name="Spread"
                 />
-                {/* Zero line */}
                 <Line
                   type="monotone"
                   dataKey={() => 0}
@@ -798,42 +741,41 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
         <div className="mt-3">
           {spreadData.length > 0 ? (
             <>
-              <div className="flex justify-between text-14 mb-2">
-                <span className="text-muted">
-                  Current Spread: ${spreadData[spreadData.length - 1]?.spread.toFixed(2)}
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-600">
+                  Current: ${spreadData[spreadData.length - 1]?.spread.toFixed(2)}
                 </span>
-                <span className="text-muted">
+                <span className="text-slate-600">
                   Avg: ${(spreadData.reduce((sum, d) => sum + d.spread, 0) / spreadData.length).toFixed(2)}
                 </span>
-                <span className="text-muted">
-                  DA Price: ${spreadData[0]?.daLmp.toFixed(2)}
+                <span className="text-slate-600">
+                  DA: ${spreadData[0]?.daLmp.toFixed(2)}
                 </span>
               </div>
-              <div className="flex gap-4 text-12 text-muted">
+              <div className="flex gap-4 text-xs text-slate-500">
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Buy DA Signal (&gt;$1)</span>
+                  <span>Buy Signal (&gt;$1)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Sell DA Signal (&lt;-$1)</span>
+                  <span>Sell Signal (&lt;-$1)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
                   <span>Neutral</span>
                 </div>
               </div>
             </>
           ) : (
-            <div className="text-center text-muted text-14">
+            <div className="text-center text-slate-500 text-sm">
               No spread statistics available
             </div>
           )}
-        </div>
         </div>
       </div>
     </div>
   )
 })
 
-export default ChartsRow
+export default ChartsRowGlass
