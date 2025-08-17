@@ -12,6 +12,7 @@ import TradeTicketPanel from "@/components/trade-ticket-panel"
 import PositionsTable from "@/components/positions-table"
 import SettingsPanel from "@/components/settings-panel"
 import AlertsPanel from "@/components/alerts-panel"
+import PositionsManager from "@/components/positions-manager"
 
 // Mock data types
 export interface LMPData {
@@ -205,7 +206,7 @@ export default function EnergyTradingApp() {
 
               {/* Positions Table */}
               <div className="lg:col-span-2">
-                <PositionsTable positions={positions} currentTime={currentTime} />
+                <PositionsManager />
               </div>
             </div>
           </div>

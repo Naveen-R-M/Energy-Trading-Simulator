@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional, List
 import os
+from datetime import datetime, timezone
 
 # Import models and updated services
 from models import orders, Order
+from fake_order_manager import db_manager
+from moderate_hour import moderator
 from services import (
     get_day_ahead_latest, get_day_ahead_by_date, get_day_ahead_hour,
     get_rt_latest, get_rt_last24h, get_rt_range,
@@ -11,6 +14,8 @@ from services import (
     get_load_comparison, get_cache_stats, clear_cache,
     get_queue_stats, clear_queue
 )
+
+import simulate.fetch_orders as fetch_orders
 
 app = FastAPI(
     title="Virtual Energy Trading API",
@@ -176,6 +181,136 @@ def list_orders():
         "orders": [order.dict() for order in orders]
     }
 
+# --- Fake Order Endpoints ---
+@app.post("/api/v1/orders/fake")
+def create_fake_order(
+    side: str = Query(..., description="BUY or SELL"),
+    qty_mwh: float = Query(..., ge=0.001, description="Quantity in MWh"),
+    limit_price: float = Query(..., ge=0.0, description="Limit price in $/MWh"),
+    hour_start_utc: str = Query(..., description="Hour start in UTC ISO format"),
+    location: str = Query(default="PJM-RTO", description="Location/Node"),
+    location_type: str = Query(default="ZONE", description="Location type")
+):
+    """Create a fake order and store it in the SQLite database."""
+    try:
+        # Validate side
+        if side.upper() not in ["BUY", "SELL"]:
+            raise HTTPException(status_code=400, detail="Side must be 'BUY' or 'SELL'")
+        
+        # Validate hour_start_utc format
+        try:
+            datetime.fromisoformat(hour_start_utc.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid hour_start_utc format. Expected ISO format like '2025-08-17T16:00:00Z'")
+        
+        # Create the fake order
+        order_id = db_manager.create_fake_order(
+            side=side.upper(),
+            qty_mwh=qty_mwh,
+            limit_price=limit_price,
+            hour_start_utc=hour_start_utc,
+            location=location,
+            location_type=location_type
+        )
+        
+        # Get the created order for response
+        created_order = db_manager.get_order_by_id(order_id)
+        
+        return {
+            "status": "success",
+            "message": "Fake order created successfully",
+            "order_id": order_id,
+            "order": created_order
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating fake order: {str(e)}")
+
+@app.patch("/api/v1/orders/fake/{order_id}")
+def update_fake_order(
+    order_id: str,
+    status: str = Query(..., description="Order status: PENDING, APPROVED, REJECTED, CLEARED, UNFILLED"),
+    approval_rt_lmp: Optional[float] = Query(None, description="RT LMP at approval"),
+    approval_rt_source: Optional[str] = Query(None, description="RT source"),
+    reject_reason: Optional[str] = Query(None, description="Rejection reason")
+):
+    """Update a fake order's status and approval details."""
+    try:
+        # Validate status
+        valid_statuses = ["PENDING", "APPROVED", "REJECTED", "CLEARED", "UNFILLED"]
+        if status.upper() not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Status must be one of: {', '.join(valid_statuses)}")
+        
+        # Check if order exists
+        existing_order = db_manager.get_order_by_id(order_id)
+        if not existing_order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        # Prepare approval timestamp if approving
+        approved_at = None
+        if status.upper() == "APPROVED":
+            approved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        
+        # Update the order
+        db_manager.update_order_status(
+            order_id=order_id,
+            status=status.upper(),
+            approved_at=approved_at,
+            approval_rt_lmp=approval_rt_lmp,
+            approval_rt_source=approval_rt_source,
+            reject_reason=reject_reason
+        )
+        
+        # Get updated order
+        updated_order = db_manager.get_order_by_id(order_id)
+        
+        return {
+            "status": "success",
+            "message": f"Order {order_id} updated to {status.upper()}",
+            "order": updated_order
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating fake order: {str(e)}")
+
+@app.post("/api/v1/orders/moderate/{hour_start_utc}")
+def moderate_hour_orders(
+    hour_start_utc: str,
+    approval_probability: float = Query(default=0.7, ge=0.0, le=1.0, description="Probability of approval (0.0 to 1.0)"),
+    rt_lmp_base: float = Query(default=40.0, ge=0.0, description="Base RT LMP price"),
+    rt_lmp_variance: float = Query(default=10.0, ge=0.0, description="Variance around base price")
+):
+    """Moderate all pending orders for a specific hour with random approval/rejection."""
+    try:
+        # Validate hour_start_utc format
+        try:
+            datetime.fromisoformat(hour_start_utc.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid hour_start_utc format. Expected ISO format like '2025-08-17T16:00:00Z'")
+        
+        # Moderate the hour
+        result = moderator.moderate_hour(
+            hour_start_utc=hour_start_utc,
+            approval_probability=approval_probability,
+            rt_lmp_base=rt_lmp_base,
+            rt_lmp_variance=rt_lmp_variance
+        )
+        
+        return {
+            "status": "success",
+            "message": f"Moderated {result['total_orders']} orders for hour {hour_start_utc}",
+            "result": result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error moderating hour: {str(e)}")
+
 @app.get("/api/v1/positions/open")
 def open_positions(
     market: str = Query(DEFAULT_MARKET, description="Market (e.g., pjm, ercot)"),
@@ -257,6 +392,21 @@ def clear_request_queue():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error clearing queue: {str(e)}")
+    
+# --- The endpoint ---
+@app.get("/api/v1/fetch_orders")
+def fetch_orders_from_sqlite(
+    db: str = Query(default="/app/data/trading.db", description="SQLite DB path"),
+    limit_open: int = Query(default=200, ge=1, le=10000),
+    limit_closed: int = Query(default=200, ge=1, le=10000),
+    location: Optional[str] = Query(default=None, description="Exact location filter (e.g., PJM-RTO)")
+):
+    """Fetch orders from the SQLite database."""
+    try:
+        result = fetch_orders.fetch_orders(db, limit_open, limit_closed, location)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching orders: {str(e)}")
 
 # --- Cache Management ---
 @app.get("/api/v1/cache/stats")

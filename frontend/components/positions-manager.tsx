@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface Order {
   id: string;
@@ -16,13 +16,79 @@ interface Order {
   approval_rt_lmp?: number;
   approval_rt_source?: string;
   reject_reason?: string;
+  da_price?: number | null;
 }
 
-interface PositionsTableProps {
-  orders: Order[];
+interface FetchOrdersResponse {
+  open: {
+    count: number;
+    orders: Order[];
+  };
+  closed: {
+    count: number;
+    orders: Order[];
+  };
 }
 
-const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
+interface RTPrice {
+  data: Array<{
+    interval_start_utc: string;
+    interval_end_utc: string;
+    location: string;
+    lmp: number;
+  }>;
+}
+
+// P&L calculation function exactly as specified
+function calcLivePnl(order: Order, latestRtByLoc: Record<string, number | null>): number | null {
+  const Q = order.qty_mwh ?? 0;
+  const DA = order.da_price ?? order.limit_price;
+  const rt = latestRtByLoc[order.location] ?? order.approval_rt_lmp ?? null;
+  
+  if (rt == null || DA == null) return null;
+  
+  const sideMult = order.side === "BUY" ? 1 : -1;
+  return (rt - DA) * Q * sideMult;
+}
+
+const PositionsTable: React.FC<{ orders: Order[] }> = ({ orders }) => {
+  const [latestRtPrices, setLatestRtPrices] = useState<Record<string, number | null>>({});
+
+  useEffect(() => {
+    // Get unique locations from orders
+    const locations = [...new Set(orders.map(order => order.location))];
+    
+    // Fetch latest RT prices for all locations
+    const fetchRTPrices = async () => {
+      const rtPrices: Record<string, number | null> = {};
+      
+      for (const location of locations) {
+        try {
+          const response = await fetch(`/api/v1/realtime/latest?market=pjm&location=${location}`);
+          if (response.ok) {
+            const data: RTPrice = await response.json();
+            if (data.data && data.data.length > 0) {
+              rtPrices[location] = data.data[0].lmp;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching RT price for ${location}:`, error);
+          rtPrices[location] = null;
+        }
+      }
+      
+      setLatestRtPrices(rtPrices);
+    };
+
+    if (locations.length > 0) {
+      fetchRTPrices();
+      
+      // Poll every 5 minutes as RT data is published every 5 minutes
+      const interval = setInterval(fetchRTPrices, 5 * 60 * 1000); // 5 minutes
+      return () => clearInterval(interval);
+    }
+  }, [orders]);
+
   const formatHour = (dateString: string) => {
     if (!dateString) return '—';
     try {
@@ -105,25 +171,6 @@ const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
     );
   };
 
-  const calculateLivePnL = (order: Order) => {
-    if (!order.approval_rt_lmp || !order.limit_price) return null;
-    
-    const daPrice = order.limit_price; // Bid/offer price
-    const rtPrice = order.approval_rt_lmp; // Real-time price
-    const qty = order.qty_mwh;
-    
-    let pnl: number;
-    if (order.side === 'BUY') {
-      // For BUY: profit when RT > DA (buy low, sell high at RT)
-      pnl = (rtPrice - daPrice) * qty;
-    } else {
-      // For SELL: profit when DA > RT (sell high at DA, buy back low at RT)  
-      pnl = (daPrice - rtPrice) * qty;
-    }
-    
-    return pnl;
-  };
-
   const formatPnL = (pnl: number | null) => {
     if (pnl === null || pnl === undefined) return '—';
     const formatted = pnl.toFixed(2);
@@ -132,15 +179,26 @@ const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
   };
 
   const getDALMP = (order: Order) => {
-    // Show limit_price as bid/offer since DA clearing price isn't stored yet
-    const price = order.limit_price;
+    const price = order.da_price ?? order.limit_price;
+    const isBidOffer = !order.da_price; // If no da_price, it's a bid/offer
     
     return (
-      <span title="Bid/Offer Price">
+      <span title={isBidOffer ? "Bid/Offer Price" : "DA Clearing Price"}>
         ${price?.toFixed(2) || '—'}
-        <span className="text-xs text-gray-500 ml-1">(Bid)</span>
+        {isBidOffer && <span className="text-xs text-gray-500 ml-1">(Bid)</span>}
       </span>
     );
+  };
+
+  const getLivePnL = (order: Order) => {
+    // For REJECTED/UNFILLED, P&L is always 0
+    if (['REJECTED', 'UNFILLED'].includes(order.status?.toUpperCase())) {
+      return formatPnL(0);
+    }
+    
+    // Calculate using the specified formula
+    const pnl = calcLivePnl(order, latestRtPrices);
+    return formatPnL(pnl);
   };
 
   if (orders.length === 0) {
@@ -202,10 +260,10 @@ const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
                 <ProgressPill status={order.status} />
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                {order.approval_rt_lmp ? `${order.approval_rt_lmp.toFixed(2)}` : '—'}
+                {order.approval_rt_lmp ? `$${order.approval_rt_lmp.toFixed(2)}` : '—'}
               </td>
-              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-gray-400">
-                —
+              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                {getLivePnL(order)}
               </td>
               <td className="px-4 py-4 whitespace-nowrap">
                 <StatusBadge status={order.status} />
@@ -218,4 +276,125 @@ const PositionsTable: React.FC<PositionsTableProps> = ({ orders }) => {
   );
 };
 
-export default PositionsTable;
+const PositionsManager: React.FC = () => {
+  const [data, setData] = useState<FetchOrdersResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'open' | 'closed'>('open');
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/v1/fetch_orders');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch orders: ${response.status}`);
+      }
+      
+      const result: FetchOrdersResponse = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch orders');
+      console.error('Error fetching orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Positions Management
+          </h1>
+        </div>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Positions Management
+          </h1>
+        </div>
+        <div className="bg-red-50 dark:bg-red-900 p-4 rounded-lg">
+          <div className="text-red-800 dark:text-red-200">
+            <strong>Error:</strong> {error}
+          </div>
+          <button
+            onClick={fetchOrders}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const openOrders = data.open.orders;
+  const closedOrders = data.closed.orders;
+  const currentOrders = activeTab === 'open' ? openOrders : closedOrders;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Positions Management
+        </h1>
+        <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+          <span>👁</span>
+          <span>Projected P&L</span>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('open')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'open'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400'
+            }`}
+          >
+            Open Positions ({data.open.count})
+          </button>
+          <button
+            onClick={() => setActiveTab('closed')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'closed'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400'
+            }`}
+          >
+            Closed Positions ({data.closed.count})
+          </button>
+        </nav>
+      </div>
+
+      {/* Content */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <PositionsTable orders={currentOrders} />
+      </div>
+    </div>
+  );
+};
+
+export default PositionsManager;
