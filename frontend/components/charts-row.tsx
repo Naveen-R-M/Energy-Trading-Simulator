@@ -127,49 +127,63 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
       setSpreadError(null)
       
       const now = new Date()
-      const hour = now.getHours()
+      // Use current UTC hour for consistency with backend
+      const hour = now.getUTCHours()
       setCurrentHour(hour)
       
-      // Create hour boundaries
+      // Create hour boundaries in UTC
       const hourStart = new Date(now)
-      hourStart.setHours(hour, 0, 0, 0)
+      hourStart.setUTCHours(hour, 0, 0, 0)
       const hourEnd = new Date(now)
-      hourEnd.setHours(hour + 1, 0, 0, 0)
+      hourEnd.setUTCHours(hour + 1, 0, 0, 0)
       
       const startStr = hourStart.toISOString()
       const endStr = hourEnd.toISOString()
       
-      console.log(`🔄 Fetching spread data for hour ${hour} (${startStr} to ${endStr})`)
+      console.log(`🔄 Fetching spread data for UTC hour ${hour}:`, {
+        startStr,
+        endStr,
+        localHour: now.getHours(),
+        utcHour: hour
+      })
       
       // Fetch DA price for this hour
+      console.log('📅 Fetching DA data for hour...')
       const daResponse = await fetch(`/api/v1/dayahead/range?start=${startStr}&end=${endStr}&market=pjm&location=${selectedNode}`)
       if (!daResponse.ok) {
-        throw new Error(`DA API error! status: ${daResponse.status}`)
+        throw new Error(`DA API error! status: ${daResponse.status} - ${await daResponse.text()}`)
       }
       const daResult = await daResponse.json()
       
       // Fetch RT prices for this hour (5-minute intervals)
+      console.log('🕰 Fetching RT data for hour...')
       const rtResponse = await fetch(`/api/v1/realtime/range?start=${startStr}&end=${endStr}&market=pjm&location=${selectedNode}`)
       if (!rtResponse.ok) {
-        throw new Error(`RT API error! status: ${rtResponse.status}`)
+        throw new Error(`RT API error! status: ${rtResponse.status} - ${await rtResponse.text()}`)
       }
       const rtResult = await rtResponse.json()
       
       console.log('📊 Spread API responses:', {
         daCount: daResult.data?.length,
         rtCount: rtResult.data?.length,
+        daData: daResult.data?.[0],
+        rtFirstItem: rtResult.data?.[0],
         hour: hour
       })
       
-      if (!daResult.data || !rtResult.data) {
-        throw new Error('Missing DA or RT data for spread calculation')
+      if (!daResult.data || daResult.data.length === 0) {
+        throw new Error(`No DA data found for hour ${hour}. Try a different hour or date.`)
+      }
+      
+      if (!rtResult.data || rtResult.data.length === 0) {
+        throw new Error(`No RT data found for hour ${hour}. This hour may not have current data yet.`)
       }
       
       // Get DA price for this hour (should be 1 data point)
-      const daPrice = daResult.data.length > 0 ? parseFloat(daResult.data[0].lmp) : null
+      const daPrice = parseFloat(daResult.data[0].lmp)
       
-      if (!daPrice) {
-        throw new Error('No DA price found for current hour')
+      if (!daPrice || daPrice <= 0) {
+        throw new Error('Invalid DA price received from backend')
       }
       
       // Calculate spread for each RT interval in this hour
@@ -192,11 +206,13 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
       console.log('✅ Calculated spread data:', {
         count: spreadPoints.length,
         daPrice: daPrice,
+        hourUTC: hour,
         spreadRange: {
           min: Math.min(...spreadPoints.map(d => d.spread)).toFixed(2),
           max: Math.max(...spreadPoints.map(d => d.spread)).toFixed(2),
           avg: (spreadPoints.reduce((sum, d) => sum + d.spread, 0) / spreadPoints.length).toFixed(2)
-        }
+        },
+        samplePoint: spreadPoints[0]
       })
       
       setSpreadData(spreadPoints)
@@ -358,18 +374,16 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
     fetchSpreadData()
   }, [selectedNode])
   
-  // Auto-refresh spread data every hour (when hour changes)
+  // Auto-refresh spread data every 10 minutes (more frequent than hourly)
   useEffect(() => {
     const interval = setInterval(() => {
-      const newHour = new Date().getHours()
-      if (newHour !== currentHour) {
-        console.log(`🔄 Hour changed to ${newHour}, refreshing spread data...`)
-        fetchSpreadData()
-      }
-    }, 60 * 1000) // Check every minute for hour change
+      const newHour = new Date().getUTCHours()
+      console.log(`🔄 Checking for hour change or refreshing spread data (current UTC hour: ${newHour})...`)
+      fetchSpreadData() // Always refresh to get latest data
+    }, 10 * 60 * 1000) // Check every 10 minutes
     
     return () => clearInterval(interval)
-  }, [currentHour])
+  }, [selectedNode])
   
   // Auto-refresh latest data every 5 minutes + 40 seconds (5:40 cycle)
   useEffect(() => {

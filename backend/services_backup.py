@@ -4,13 +4,8 @@ import time
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 
-from collections import defaultdict
-from datetime import datetime, timezone, timedelta
-
 # Import the API key pool manager
 from keypool_manager import initialize_api_pool, api_request_with_rotation
-from simple_cache import cached_api_call, get_cache_stats, clear_cache
-from request_queue import queued_api_call, get_queue_stats, clear_queue
 
 # Load environment variables
 load_dotenv()
@@ -24,17 +19,7 @@ DEFAULT_MARKET = "pjm"
 DEFAULT_LOCATION = "PJM-RTO"
 
 
-def _parse_utc(ts: str) -> datetime:
-    # Handles "...Z" and "...+00:00"
-    if ts.endswith("Z"):
-        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    return datetime.fromisoformat(ts).astimezone(timezone.utc)
-
-def _floor_hour(dt: datetime) -> datetime:
-    return dt.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-
-
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_day_ahead_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get latest 24 hours of day-ahead prices."""
     url = (
@@ -44,12 +29,13 @@ def get_day_ahead_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_L
         f"&order=desc&limit=24"
         f"&columns=interval_start_utc,interval_end_utc,location,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_day_ahead_hour(market: str, location: str, hour_start: str, hour_end: str, api_key: str = None) -> List[Dict]:
     """Get day-ahead prices for specific time range."""
     url = (
@@ -57,15 +43,15 @@ def get_day_ahead_hour(market: str, location: str, hour_start: str, hour_end: st
         f"?api_key={api_key}"
         f"&start_time={hour_start}&end_time={hour_end}"
         f"&filter_column=location&filter_value={location}"
-        f"&order=desc&limit=24"
         f"&columns=interval_start_utc,interval_end_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_rt_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get latest real-time price."""
     url = (
@@ -73,16 +59,15 @@ def get_rt_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION
         f"?api_key={api_key}"
         f"&time=latest"
         f"&filter_column=location&filter_value={location}"
-        f"&limit=1&columns=interval_start_utc,lmp,energy,congestion,loss"
+        f"&limit=1&columns=interval_start_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@queued_api_call
-@cached_api_call
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_rt_last24h(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get last 24 hours of real-time prices (288 5-minute intervals)."""
     url = (
@@ -92,13 +77,13 @@ def get_rt_last24h(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATIO
         f"&order=desc&limit=288"
         f"&columns=interval_start_utc,lmp,energy,congestion,loss"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@queued_api_call
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_rt_range(market: str, location: str, start: str, end: str, api_key: str = None) -> List[Dict]:
     """Get real-time prices for specific time range."""
     url = (
@@ -106,16 +91,15 @@ def get_rt_range(market: str, location: str, start: str, end: str, api_key: str 
         f"?api_key={api_key}"
         f"&start_time={start}&end_time={end}"
         f"&filter_column=location&filter_value={location}"
-        f"&order=asc&columns=interval_start_utc,lmp,energy,congestion,loss"
+        f"&order=asc&columns=interval_start_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
 
 
-@queued_api_call
-@cached_api_call
-@api_request_with_rotation(API_POOL, max_retries=3)
+@api_request_with_rotation(API_POOL, max_retries=6)
 def get_day_ahead_by_date(date: str, market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get day-ahead prices for a specific date (all 24 hours)."""
     url = (
@@ -123,9 +107,10 @@ def get_day_ahead_by_date(date: str, market: str = DEFAULT_MARKET, location: str
         f"?api_key={api_key}"
         f"&date={date}"
         f"&filter_column=location&filter_value={location}"
-        f"&order=desc&limit=24"
+        f"&order=asc&limit=24"
         f"&columns=interval_start_utc,interval_end_utc,lmp"
     )
+    print("URL -->", url)
     response = requests.get(url)
     response.raise_for_status()
     return response.json()["data"]
@@ -184,25 +169,19 @@ def health_check() -> Dict[str, Any]:
         # Try to get latest RT data as a health check
         latest_rt = get_rt_latest()
         pool_stats = get_api_pool_stats()
-        cache_stats = get_cache_stats()
-        queue_stats = get_queue_stats()
         
         return {
             "status": "healthy",
             "api_responsive": True,
             "latest_data_timestamp": latest_rt[0]["interval_start_utc"] if latest_rt else None,
-            "pool_stats": pool_stats,
-            "cache_stats": cache_stats,
-            "queue_stats": queue_stats
+            "pool_stats": pool_stats
         }
     except Exception as e:
         return {
             "status": "unhealthy",
             "api_responsive": False,
             "error": str(e),
-            "pool_stats": get_api_pool_stats(),
-            "cache_stats": get_cache_stats(),
-            "queue_stats": get_queue_stats()
+            "pool_stats": get_api_pool_stats()
         }
 
 
@@ -242,119 +221,119 @@ def test_api_strategies():
 # Load Data Functions (Actual vs Forecast)
 # ==============================
 
-@queued_api_call
-@cached_api_call
 @api_request_with_rotation(API_POOL, max_retries=3)
 def get_pjm_load_actual(date: str, api_key: str = None) -> List[Dict]:
-    """Actual load via 5-min series -> resampled to hourly avg."""
-    start = f"{date}T00:00:00Z"
-    # end is exclusive; go to next midnight
-    end_dt = datetime.fromisoformat(date).date() + timedelta(days=1)
-    end = f"{end_dt.isoformat()}T00:00:00Z"
-
+    """Get actual hourly load data for PJM for a specific date."""
+    # Use the hourly metered dataset (Option A - recommended)
+    start_time = f"{date}T00:00:00Z"
+    end_time = f"{date}T23:59:59Z"
+    
     url = (
         f"{BASE}/pjm_load/query"
         f"?api_key={api_key}"
-        f"&start_time={start}&end_time={end}"
+        f"&start_time={start_time}&end_time={end_time}"
+        f"&filter_column=mkt_region&filter_value=PJM"
         f"&order=asc"
-        f"&columns=interval_start_utc,load"
-        # no limit – we want all 5-min points (~288)
+        f"&columns=interval_start_utc,load,mw"
     )
-    r = requests.get(url); r.raise_for_status()
-    rows = r.json()["data"]
-
-    buckets = defaultdict(list)
-    for item in rows:
-        dt = _parse_utc(item["interval_start_utc"])
-        hr = _floor_hour(dt)
-        buckets[hr].append(float(item["load"]))
-
-    out = []
-    for hr in sorted(buckets.keys()):
-        avg_load = sum(buckets[hr]) / len(buckets[hr])
-        out.append({
-            "interval_start_utc": hr.isoformat().replace("+00:00", "Z"),
-            "actual_load_mw": avg_load,
+    print("URL -->", url)
+    response = requests.get(url)
+    response.raise_for_status()
+    
+    data = response.json()["data"]
+    
+    # Group by hour and sum MW (aggregate all load areas)
+    from collections import defaultdict
+    hourly_totals = defaultdict(float)
+    
+    for item in data:
+        hour_key = item["interval_start_utc"][:13] + ":00:00Z"  # Truncate to hour
+        hourly_totals[hour_key] += float(item["mw"])
+    
+    # Convert back to list format
+    result = []
+    for hour_utc, total_mw in hourly_totals.items():
+        result.append({
+            "interval_start_utc": hour_utc,
+            "actual_load_mw": total_mw
         })
-    return out
+    
+    return sorted(result, key=lambda x: x["interval_start_utc"])
 
-@queued_api_call
-@cached_api_call
+
 @api_request_with_rotation(API_POOL, max_retries=3)
 def get_pjm_load_forecast(date: str, api_key: str = None) -> List[Dict]:
-    start = f"{date}T00:00:00Z"
-    end_dt = datetime.fromisoformat(date).date() + timedelta(days=1)
-    end = f"{end_dt.isoformat()}T00:00:00Z"
-
+    """Get forecast load data for PJM for a specific date."""
+    start_time = f"{date}T00:00:00Z"
+    end_time = f"{date}T23:59:59Z"
+    
     url = (
         f"{BASE}/pjm_load_forecast_hourly/query"
         f"?api_key={api_key}"
-        f"&start_time={start}&end_time={end}"
+        f"&start_time={start_time}&end_time={end_time}"
         f"&order=asc"
         f"&columns=interval_start_utc,load_forecast"
-        f"&limit=24"
     )
-    r = requests.get(url); r.raise_for_status()
-    data = r.json()["data"]
+    print("URL -->", url)
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()["data"]
 
-    out = []
-    for item in data:
-        # normalize to hour dt key
-        hr = _floor_hour(_parse_utc(item["interval_start_utc"]))
-        out.append({
-            "interval_start_utc": hr.isoformat().replace("+00:00", "Z"),
-            "forecast_load_mw": float(item["load_forecast"]),
-        })
-    return out
 
 def get_load_comparison(date: str) -> Dict[str, Any]:
-    actual = get_pjm_load_actual(date)
-    forecast = get_pjm_load_forecast(date)
-
-    # index by datetime (not string)
-    actual_map = {
-        _floor_hour(_parse_utc(x["interval_start_utc"])): x["actual_load_mw"]
-        for x in actual
-    }
-
-    rows = []
-    matched = 0
-    for f in forecast:
-        hr_dt = _floor_hour(_parse_utc(f["interval_start_utc"]))
-        a = actual_map.get(hr_dt)
-        fl = f["forecast_load_mw"]
-        if a is not None:
-            matched += 1
-        rows.append({
-            "interval_start_utc": hr_dt.isoformat().replace("+00:00", "Z"),
-            "hour": hr_dt.hour,
-            "actual_load_mw": a if a is not None else 0.0,
-            "forecast_load_mw": fl,
-            "error_mw": (a - fl) if a is not None else -fl,
-            "error_percent": ((a - fl) / fl * 100.0) if (a is not None and fl > 0) else ( -100.0 if fl > 0 else 0.0 ),
-        })
-
-    total_actual = sum(r["actual_load_mw"] for r in rows)
-    total_forecast = sum(r["forecast_load_mw"] for r in rows)
-    peak_actual = max((r["actual_load_mw"] for r in rows), default=0.0)
-    avg_err = sum(abs(r["error_mw"]) for r in rows) / len(rows) if rows else 0.0
-    acc = (1.0 - abs(total_actual - total_forecast) / total_forecast) * 100.0 if total_forecast > 0 else 0.0
-
-    return {
-        "date": date,
-        "matched_hours": matched,
-        "data": rows,
-        "summary": {
-            "peak_load_mw": peak_actual,
-            "total_actual_mwh": total_actual,
-            "total_forecast_mwh": total_forecast,
-            "avg_forecast_error_mw": avg_err,
-            "forecast_accuracy_percent": acc
+    """Get actual vs forecast load comparison for a specific date."""
+    try:
+        actual_data = get_pjm_load_actual(date)
+        forecast_data = get_pjm_load_forecast(date)
+        
+        # Combine actual and forecast by hour
+        load_comparison = []
+        actual_dict = {item["interval_start_utc"]: item["actual_load_mw"] for item in actual_data}
+        
+        for forecast_item in forecast_data:
+            hour_utc = forecast_item["interval_start_utc"]
+            actual_load = actual_dict.get(hour_utc, 0)
+            forecast_load = float(forecast_item.get("load_forecast", 0))
+            
+            load_comparison.append({
+                "interval_start_utc": hour_utc,
+                "hour": int(hour_utc[11:13]),
+                "actual_load_mw": actual_load,
+                "load_forecast": forecast_load,
+                "error_mw": actual_load - forecast_load,
+                "error_percent": ((actual_load - forecast_load) / forecast_load * 100) if forecast_load > 0 else 0
+            })
+        
+        # Calculate summary statistics
+        total_actual = sum(item["actual_load_mw"] for item in load_comparison)
+        total_forecast = sum(item["load_forecast"] for item in load_comparison)
+        peak_actual = max(item["actual_load_mw"] for item in load_comparison) if load_comparison else 0
+        avg_error = sum(abs(item["error_mw"]) for item in load_comparison) / len(load_comparison) if load_comparison else 0
+        
+        return {
+            "date": date,
+            "data": load_comparison,
+            "summary": {
+                "peak_load_mw": peak_actual,
+                "total_actual_mwh": total_actual,
+                "total_forecast_mwh": total_forecast,
+                "avg_forecast_error_mw": avg_error,
+                "forecast_accuracy_percent": ((total_forecast - abs(total_actual - total_forecast)) / total_forecast * 100) if total_forecast > 0 else 0
+            }
         }
-    }
+        
+    except Exception as e:
+        print(f"Error getting load comparison: {e}")
+        return {
+            "date": date,
+            "data": [],
+            "summary": {},
+            "error": str(e)
+        }
+
 
 if __name__ == "__main__":
-# Quick test
+    # Quick test
     print("🚀 Testing API key pool...")
     
     # Check pool stats

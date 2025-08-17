@@ -30,7 +30,7 @@ class ApiKeyPool:
         self.strategy = strategy
         self.current_index = 0
         self.lock = threading.Lock()
-        self.cooldown_minutes = 15  # How long to wait after rate limit
+        self.cooldown_minutes = 1.5  # How long to wait after rate limit
         
     def get_next_key(self) -> Optional[str]:
         """Get the next available API key based on strategy."""
@@ -38,12 +38,21 @@ class ApiKeyPool:
             # Filter out rate-limited keys
             available_keys = self._get_available_keys()
             
+            print(f"🔍 API Key Pool Status:")
+            print(f"   Total keys: {len(self.keys_stats)}")
+            print(f"   Available keys: {len(available_keys)}")
+            for i, key_stat in enumerate(self.keys_stats):
+                status = "Available" if key_stat in available_keys else "Rate-limited/Inactive"
+                print(f"   Key {i+1} ({key_stat.key[:8]}...): {status} - Requests: {key_stat.request_count}")
+            
             if not available_keys:
+                print("❌ No available keys! Checking cooldowns...")
                 # All keys are rate limited, wait for the one with shortest cooldown
                 self._wait_for_cooldown()
                 available_keys = self._get_available_keys()
                 
             if not available_keys:
+                print("❌ Still no available keys after cooldown check!")
                 raise Exception("All API keys are exhausted or inactive")
                 
             if self.strategy == "round_robin":
@@ -146,7 +155,7 @@ class ApiKeyPool:
         if rate_limited_keys:
             shortest_wait = min(rate_limited_keys, key=lambda k: k.rate_limited_until)
             wait_time = (shortest_wait.rate_limited_until - now).total_seconds()
-            if wait_time > 0 and wait_time < 300:  # Only wait up to 5 minutes
+            if wait_time > 0 and wait_time < (self.cooldown_minutes * 60):  # Only wait up to cooldown period
                 print(f"⏳ Waiting {wait_time:.1f} seconds for API key cooldown...")
                 time.sleep(wait_time)
     

@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Remove standalone output for development hot reload
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  
   // Disable type checking and linting during build for faster Docker builds
   typescript: {
     ignoreBuildErrors: true,
@@ -9,20 +11,32 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Disable CSS optimization temporarily for build success
+  
+  // Optimize for development
   optimizeFonts: false,
-  // Fix hydration issues with SSR
   reactStrictMode: false,
+  
+  // Hot reload configuration for Docker
+  ...(process.env.NODE_ENV === 'development' && {
+    webpack: (config, { dev }) => {
+      if (dev) {
+        // Enable polling for file watching in Docker
+        config.watchOptions = {
+          poll: 1000,
+          aggregateTimeout: 300,
+        };
+      }
+      return config;
+    },
+  }),
+  
   // Suppress React warnings in development
   logging: {
     fetches: {
       fullUrl: false,
     },
   },
-  // Enable experimental features if needed
-  experimental: {
-    // Add any experimental features here
-  },
+  
   // API routes configuration for backend communication
   async rewrites() {
     return [

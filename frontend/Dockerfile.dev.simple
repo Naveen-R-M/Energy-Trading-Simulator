@@ -1,6 +1,4 @@
-# syntax=docker/dockerfile:1.4
-# Development Dockerfile with caching optimizations
-
+# Simple Development Dockerfile without cache mounts
 FROM node:18-alpine
 
 # Install system dependencies once
@@ -8,13 +6,9 @@ RUN apk add --no-cache curl
 
 WORKDIR /app
 
-# Copy and install dependencies with cache mount
+# Copy and install dependencies (will be cached by Docker layers)
 COPY package.json package-lock.json* ./
-
-# Use cache mount to persist node_modules between builds
-RUN --mount=type=cache,target=/root/.npm \
-    npm set cache /root/.npm && \
-    npm install
+RUN npm install
 
 # Copy source code
 COPY . .

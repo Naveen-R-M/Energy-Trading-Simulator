@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, Typography, Space } from "@arco-design/web-react"
 import { IconDown } from "@arco-design/web-react/icon"
 import {
@@ -19,8 +19,13 @@ import {
 
 const { Title, Text } = Typography
 
+interface ContextTilesProps {
+  selectedDate: Date
+  selectedNode: string
+}
+
 // Mock load data
-const generateLoadData = () => {
+const generateMockLoadData = () => {
   const data = []
   for (let hour = 0; hour < 24; hour++) {
     const baseLoad = 25000 + Math.sin(((hour - 6) * Math.PI) / 12) * 8000
@@ -30,9 +35,9 @@ const generateLoadData = () => {
     data.push({
       hour,
       time: `${String(hour).padStart(2, "0")}:00`,
-      forecast: Math.max(0, forecast),
-      actual: Math.max(0, actual),
-      difference: actual - forecast,
+      forecast: Math.max(0, Math.round(forecast)),
+      actual: Math.max(0, Math.round(actual)),
+      difference: Math.round(actual - forecast),
     })
   }
   return data
@@ -47,27 +52,112 @@ const generateFuelMixData = () => [
   { name: "Hydro", value: 3, color: "#06b6d4" },
 ]
 
-export default function ContextTiles() {
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  const loadData = generateLoadData()
-  const fuelMixData = generateFuelMixData()
-
-  const LoadTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-medium">Hour {label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }}>
-              {entry.name}: {entry.value?.toFixed(0)} MW
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
+const LoadTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <p className="font-medium">Hour {label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }}>
+            {entry.name}: {entry.value?.toFixed(0)} MW
+          </p>
+        ))}
+      </div>
+    )
   }
+  return null
+}
+
+const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNode }: ContextTilesProps) {
+  const [isExpanded, setIsExpanded] = useState(true) // Start expanded to show the chart
+  const [loadData, setLoadData] = useState<any[]>([])
+  const [loadLoading, setLoadLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadSummary, setLoadSummary] = useState<any>({})
+
+  const fetchLoadData = async (date: Date) => {
+    try {
+      setLoadLoading(true)
+      setLoadError(null)
+      
+      const dateStr = date.toISOString().split('T')[0]
+      const apiUrl = `/api/v1/load/comparison/${dateStr}?market=pjm`
+      
+      console.log('📊 Fetching REAL load data:', {
+        date: dateStr,
+        url: apiUrl
+      })
+      
+      const response = await fetch(apiUrl)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
+      }
+      
+      const result = await response.json()
+      
+      console.log('📊 Load API response:', {
+        hasData: !!result.data,
+        dataLength: result.data?.length,
+        hasSummary: !!result.summary,
+        hasError: !!result.error,
+        sampleData: result.data?.[0]
+      })
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
+      
+      if (result.data && Array.isArray(result.data)) {
+        // Transform for chart display
+        const transformedData = result.data.map((item: any) => ({
+          hour: item.hour,
+          time: `${String(item.hour).padStart(2, '0')}:00`,
+          actual: Math.round(item.actual_load_mw),
+          forecast: Math.round(item.forecast_load_mw),
+          difference: Math.round(item.error_mw)
+        }))
+        
+        console.log('✅ Load data transformed:', {
+          count: transformedData.length,
+          firstItem: transformedData[0],
+          lastItem: transformedData[transformedData.length - 1],
+          summary: result.summary
+        })
+        
+        setLoadData(transformedData)
+        setLoadSummary(result.summary || {})
+      } else {
+        throw new Error('No load data received from backend')
+      }
+      
+      setLoadLoading(false)
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch load data:', error)
+      setLoadError(error instanceof Error ? error.message : 'Unknown error')
+      setLoadLoading(false)
+      
+      // DO NOT fallback to mock - show error instead
+      console.log('⚠️ Not using mock data - showing error state')
+      setLoadData([])
+    }
+  }
+
+  // Fetch when date changes - force immediate fetch on mount
+  useEffect(() => {
+    console.log('🚀 ContextTiles mounting - forcing load data fetch for:', selectedDate.toISOString().split('T')[0])
+    fetchLoadData(selectedDate)
+  }, [selectedDate])
+  
+  // Also fetch on component mount
+  useEffect(() => {
+    console.log('🚀 ContextTiles component mounted')
+    fetchLoadData(selectedDate)
+  }, [])
+
+  const fuelMixData = generateFuelMixData()
 
   return (
     <Card className="mt-4">
@@ -87,30 +177,71 @@ export default function ContextTiles() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
               {/* Load Actual vs Forecast */}
               <Card>
-                <Title level={6} className="mb-4">
-                  Load: Actual vs Forecast
-                </Title>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={loadData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="time" tick={{ fontSize: 10 }} interval={2} />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <RechartsTooltip content={<LoadTooltip />} />
-                      <Legend />
-                      <Bar dataKey="forecast" fill="#94a3b8" name="Forecast" />
-                      <Bar dataKey="actual" fill="#3b82f6" name="Actual" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="flex items-center justify-between mb-4">
+                  <Title level={6} className="mb-0 text-white">
+                    Load: Actual vs Forecast
+                  </Title>
+                  <Text className="text-sm text-gray-400">
+                    {selectedDate.toLocaleDateString()}
+                  </Text>
                 </div>
-                <div className="mt-3 text-sm text-gray-600">
-                  <Space>
-                    <span>Peak Load: {Math.max(...loadData.map((d) => d.actual)).toFixed(0)} MW</span>
-                    <span>
-                      Forecast Error: ±
-                      {(loadData.reduce((sum, d) => sum + Math.abs(d.difference), 0) / loadData.length).toFixed(0)} MW
-                    </span>
-                  </Space>
+                <div className="h-48">
+                  {loadLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                        <Text className="text-xs text-gray-400">Loading load data...</Text>
+                      </div>
+                    </div>
+                  ) : loadError ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Text className="text-xs text-red-400 mb-2">Error: {loadError}</Text>
+                        <button 
+                          onClick={() => fetchLoadData(selectedDate)}
+                          className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={loadData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis
+                          dataKey="time"
+                          tick={{ fontSize: 10, fill: '#ffffff' }}
+                          interval={2}
+                          axisLine={{ stroke: '#374151' }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: '#ffffff' }}
+                          axisLine={{ stroke: '#374151' }}
+                          label={{ value: 'MW', angle: -90, position: 'insideLeft', style: { fill: '#ffffff' } }}
+                        />
+                        <RechartsTooltip content={<LoadTooltip />} />
+                        <Legend />
+                        <Bar dataKey="actual" fill="#3b82f6" name="Actual" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="forecast" fill="#6b7280" name="Forecast" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+                {Object.keys(loadSummary).length > 0 && (
+                  <div className="mt-3 flex justify-between text-xs text-gray-300">
+                    <span>Peak Load: {Math.round(loadSummary.peak_load_mw || 0).toLocaleString()} MW</span>
+                    <span>Forecast Error: ±{Math.round(loadSummary.avg_forecast_error_mw || 0)} MW</span>
+                    <span>Accuracy: {(loadSummary.forecast_accuracy_percent || 0).toFixed(1)}%</span>
+                  </div>
+                )}
+                
+                {/* Debug info */}
+                <div className="mt-2 text-xs text-gray-500">
+                  Data points: {loadData.length} • Loading: {loadLoading ? 'Yes' : 'No'} • Error: {loadError || 'None'}
+                  {loadData.length > 0 && (
+                    <div>Sample: Hour {loadData[0]?.hour} - Actual: {loadData[0]?.actual?.toLocaleString()}MW</div>
+                  )}
                 </div>
               </Card>
 
@@ -142,7 +273,7 @@ export default function ContextTiles() {
                 </div>
                 <div className="mt-3 text-sm text-gray-600">
                   <Text>
-                    Marginal fuel: {fuelMixData[0].name} ({fuelMixData[0].value}%)
+                    Marginal fuel: {fuelMixData[0].name} ({fuelMixData.value}%)
                   </Text>
                 </div>
               </Card>
@@ -157,7 +288,6 @@ export default function ContextTiles() {
                   <Text className="text-xs text-gray-500">No alerts active</Text>
                 </div>
               </Card>
-
               <Card className="bg-green-50">
                 <div className="text-center">
                   <Text className="text-sm text-gray-600 block">Reserve Margin</Text>
@@ -165,7 +295,6 @@ export default function ContextTiles() {
                   <Text className="text-xs text-gray-500">Above minimum</Text>
                 </div>
               </Card>
-
               <Card className="bg-yellow-50">
                 <div className="text-center">
                   <Text className="text-sm text-gray-600 block">Transmission</Text>
@@ -179,4 +308,6 @@ export default function ContextTiles() {
       </div>
     </Card>
   )
-}
+})
+
+export default ContextTiles

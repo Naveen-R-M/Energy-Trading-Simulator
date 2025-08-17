@@ -7,7 +7,9 @@ from models import orders, Order
 from services import (
     get_day_ahead_latest, get_day_ahead_by_date, get_day_ahead_hour,
     get_rt_latest, get_rt_last24h, get_rt_range,
-    compute_pnl, get_api_pool_stats, reset_api_pool, health_check
+    compute_pnl, get_api_pool_stats, reset_api_pool, health_check,
+    get_load_comparison, get_cache_stats, clear_cache,
+    get_queue_stats, clear_queue
 )
 
 app = FastAPI(
@@ -122,6 +124,23 @@ def rt_range(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching real-time data: {str(e)}")
 
+# --- Load Data Endpoints ---
+@app.get("/api/v1/load/comparison/{date}")
+def load_comparison(
+    date: str,
+    market: str = Query("pjm", description="Market (currently only pjm supported)")
+):
+    """Get actual vs forecast load comparison for a specific date (YYYY-MM-DD)."""
+    try:
+        result = get_load_comparison(date)
+        return {
+            "market": market,
+            "date": date,
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching load comparison for {date}: {str(e)}")
+
 # --- Trading / Orders Endpoints ---
 @app.post("/api/v1/orders")
 def place_order(order: Order):
@@ -218,6 +237,44 @@ def reset_pool(strategy: str = Query("round_robin", description="Strategy: round
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error resetting pool: {str(e)}")
+
+# --- Queue Management ---
+@app.get("/api/v1/queue/stats")
+def queue_stats():
+    """Get request queue statistics."""
+    return get_queue_stats()
+
+@app.post("/api/v1/queue/clear")
+def clear_request_queue():
+    """Clear the request queue (emergency use only)."""
+    try:
+        result = clear_queue()
+        return {
+            "status": "success",
+            "message": "Request queue cleared and restarted",
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing queue: {str(e)}")
+
+# --- Cache Management ---
+@app.get("/api/v1/cache/stats")
+def cache_stats():
+    """Get cache statistics."""
+    return get_cache_stats()
+
+@app.post("/api/v1/cache/clear")
+def clear_api_cache():
+    """Clear all cached data."""
+    try:
+        result = clear_cache()
+        return {
+            "status": "success",
+            "message": "Cache cleared successfully",
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing cache: {str(e)}")
 
 # --- Health Check ---
 @app.get("/api/v1/health")

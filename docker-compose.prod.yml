@@ -4,11 +4,9 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: energy-trading-backend-dev
+    container_name: energy-trading-backend-prod
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
     environment:
       - GRIDSTATUS_API_KEYS=${GRIDSTATUS_API_KEYS}
     env_file:
@@ -23,28 +21,20 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend service with hot reload - no custom dockerfile needed
+  # Frontend service - Production build
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev.simple  # Use existing simple dockerfile
-    container_name: energy-trading-frontend-dev
+      dockerfile: Dockerfile  # Use production dockerfile
+    container_name: energy-trading-frontend-prod
     ports:
       - "3000:3000"
-    # Mount source for hot reload in development
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules  # Preserve node_modules in container
-      - /app/.next         # Preserve Next.js cache
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
-      - TURBO_TELEMETRY_DISABLED=1
-      - CHOKIDAR_USEPOLLING=true  # Enable file watching for Docker
-      - WATCHPACK_POLLING=true    # Enable webpack polling
       - BACKEND_URL=http://backend:8000
     restart: always
     networks:
@@ -56,8 +46,4 @@ networks:
 
 volumes:
   backend_data:
-    driver: local
-  frontend_node_modules:
-    driver: local
-  frontend_next_cache:
     driver: local

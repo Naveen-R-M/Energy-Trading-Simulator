@@ -6,6 +6,7 @@ import "@arco-design/web-react/dist/css/arco.css"
 import MarketHeader from "@/components/market-header"
 import LivePriceStrip from "@/components/live-price-strip"
 import ChartsRow from "@/components/charts-row"
+import LoadChart from "@/components/load-chart"
 import ContextTiles from "@/components/context-tiles"
 import TradeTicketPanel from "@/components/trade-ticket-panel"
 import PositionsTable from "@/components/positions-table"
@@ -179,8 +180,8 @@ export default function EnergyTradingApp() {
             {/* Charts Row */}
             <ChartsRow selectedDate={selectedDate} selectedNode={selectedNode} />
 
-            {/* Context Tiles */}
-            <ContextTiles />
+            {/* Context Tiles (includes Load chart) */}
+            <ContextTiles selectedDate={selectedDate} selectedNode={selectedNode} />
 
             {/* Alerts Panel */}
             <AlertsPanel />
