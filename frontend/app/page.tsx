@@ -153,6 +153,16 @@ export default function EnergyTradingApp() {
     setPositions((prev) => [...prev, newTrade])
   }
 
+  const handleDateChange = (date: Date) => {
+    // Ensure we always set a valid Date object
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      setSelectedDate(date)
+    } else {
+      console.warn('Invalid date received, using current date as fallback')
+      setSelectedDate(new Date())
+    }
+  }
+
   return (
     <ConfigProvider>
       <Layout className="min-h-screen bg-background dark">
@@ -165,7 +175,7 @@ export default function EnergyTradingApp() {
               selectedDate={selectedDate}
               latestLMP={lmpData[lmpData.length - 1]}
               onNodeChange={setSelectedNode}
-              onDateChange={setSelectedDate}
+              onDateChange={handleDateChange}
               onSettingsClick={() => setIsSettingsOpen(true)}
             />
           </div>

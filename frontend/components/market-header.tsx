@@ -141,7 +141,11 @@ export default function MarketHeader({
             <Text className="text-xs text-muted-foreground font-medium">Date</Text>
             <DatePicker
               value={selectedDate}
-              onChange={(date) => onDateChange(date || new Date())}
+              onChange={(date) => {
+                // Ensure we always have a valid Date object
+                const validDate = date && date instanceof Date ? date : new Date()
+                onDateChange(validDate)
+              }}
               size="default"
               style={{ width: 160 }}
               format="MM/DD/YYYY"
