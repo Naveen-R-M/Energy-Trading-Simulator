@@ -33,8 +33,8 @@ const LoadChart = React.memo(function LoadChart({ selectedDate, selectedNode }: 
       setLoading(true)
       setError(null)
       
-      const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD
-      const apiUrl = `/api/v1/load/comparison/${dateStr}?market=pjm`
+      const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD format
+      const apiUrl = `/api/v1/load/comparison/${dateStr}`
       
       console.log(`📊 Fetching load data for ${dateStr}:`, apiUrl)
       
@@ -59,16 +59,21 @@ const LoadChart = React.memo(function LoadChart({ selectedDate, selectedNode }: 
         throw new Error('Invalid load data format received from backend')
       }
       
-      // Transform data for chart (add hour labels)
+      // Transform data for chart (add hour labels and ensure proper formatting)
       const transformedData = result.data.map((item: any) => ({
         ...item,
-        hourLabel: `${String(item.hour).padStart(2, '0')}:00`
+        hourLabel: `${String(item.hour).padStart(2, '0')}:00`,
+        // Ensure numbers are properly formatted
+        actual_load_mw: item.actual_load_mw || 0,
+        forecast_load_mw: item.forecast_load_mw || 0,
+        error_mw: item.error_mw || 0
       }))
       
       console.log('✅ Load data transformed:', {
         count: transformedData.length,
         peakLoad: result.summary?.peak_load_mw,
-        avgError: result.summary?.avg_forecast_error_mw
+        avgError: result.summary?.avg_forecast_error_mw,
+        accuracy: result.summary?.forecast_accuracy_percent
       })
       
       setLoadData(transformedData)
@@ -91,12 +96,17 @@ const LoadChart = React.memo(function LoadChart({ selectedDate, selectedNode }: 
     if (active && payload && payload.length) {
       const data = payload[0]?.payload
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <div className="bg-white p-3 border rounded-lg shadow-lg text-black">
           <p className="font-medium">Hour {label}</p>
-          <p style={{ color: "#3b82f6" }}>Actual: {data?.actual_load_mw?.toFixed(0)} MW</p>
-          <p style={{ color: "#6b7280" }}>Forecast: {data?.forecast_load_mw?.toFixed(0)} MW</p>
+          <p style={{ color: "#3b82f6" }}>
+            Actual: {data?.actual_load_mw?.toLocaleString()} MW
+          </p>
+          <p style={{ color: "#6b7280" }}>
+            Forecast: {data?.forecast_load_mw?.toLocaleString()} MW
+          </p>
           <p style={{ color: data?.error_mw > 0 ? "#dc2626" : "#16a34a" }}>
-            Error: {data?.error_mw > 0 ? "+" : ""}{data?.error_mw?.toFixed(0)} MW
+            Error: {data?.error_mw > 0 ? "+" : ""}{data?.error_mw?.toFixed(0)} MW 
+            ({((data?.error_mw / data?.forecast_load_mw) * 100)?.toFixed(1)}%)
           </p>
         </div>
       )
@@ -105,34 +115,40 @@ const LoadChart = React.memo(function LoadChart({ selectedDate, selectedNode }: 
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-gray-800 border-gray-700">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Title level={4} className="mb-0 text-white">
             Load: Actual vs Forecast
           </Title>
           <Tooltip content="Hourly actual load vs forecast with accuracy metrics">
-            <IconInfoCircle className="text-gray-400 text-sm" />
+            <IconInfoCircle className="text-gray-400 text-sm cursor-help" />
           </Tooltip>
         </div>
-        <Text className="text-sm text-gray-500">{selectedDate.toLocaleDateString()}</Text>
+        <Text className="text-sm text-gray-300">
+          {selectedDate.toLocaleDateString('en-US', { 
+            month: 'numeric', 
+            day: 'numeric', 
+            year: 'numeric' 
+          })}
+        </Text>
       </div>
 
-      <div className="h-80">
+      <div className="h-80 mb-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-              <Text className="text-sm text-gray-500">Loading load data...</Text>
+              <Text className="text-sm text-gray-400">Loading load data...</Text>
             </div>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <Text className="text-sm text-red-500 mb-2">❌ Error: {error}</Text>
+              <Text className="text-sm text-red-400 mb-2">❌ Error: {error}</Text>
               <button 
                 onClick={() => fetchLoadData(selectedDate)}
-                className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
               >
                 Retry
               </button>
@@ -140,46 +156,97 @@ const LoadChart = React.memo(function LoadChart({ selectedDate, selectedNode }: 
           </div>
         ) : loadData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <Text className="text-sm text-gray-500">No load data for {selectedDate.toLocaleDateString()}</Text>
+            <Text className="text-sm text-gray-400">
+              No load data for {selectedDate.toLocaleDateString()}
+            </Text>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={loadData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <BarChart 
+              data={loadData} 
+              margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+              barCategoryGap="10%"
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
               <XAxis 
                 dataKey="hourLabel" 
-                tick={{ fontSize: 10, fill: '#ffffff' }} 
-                axisLine={{ stroke: '#374151' }}
+                tick={{ fontSize: 12, fill: '#ffffff' }} 
+                axisLine={{ stroke: '#6b7280' }}
+                tickLine={{ stroke: '#6b7280' }}
               />
               <YAxis 
-                tick={{ fontSize: 10, fill: '#ffffff' }} 
-                axisLine={{ stroke: '#374151' }}
-                label={{ value: 'MW', angle: -90, position: 'insideLeft', style: { fill: '#ffffff' } }}
+                tick={{ fontSize: 12, fill: '#ffffff' }} 
+                axisLine={{ stroke: '#6b7280' }}
+                tickLine={{ stroke: '#6b7280' }}
+                label={{ 
+                  value: 'MW', 
+                  angle: -90, 
+                  position: 'insideLeft', 
+                  style: { textAnchor: 'middle', fill: '#ffffff' } 
+                }}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
               />
               <RechartsTooltip content={<CustomTooltip />} />
-              <Legend />
+              <Legend 
+                wrapperStyle={{ color: '#ffffff' }}
+              />
               <Bar 
                 dataKey="actual_load_mw" 
                 fill="#3b82f6" 
                 name="Actual"
                 radius={[2, 2, 0, 0]}
+                opacity={0.9}
               />
               <Bar 
                 dataKey="forecast_load_mw" 
                 fill="#6b7280" 
                 name="Forecast"
                 radius={[2, 2, 0, 0]}
+                opacity={0.7}
               />
             </BarChart>
           </ResponsiveContainer>
         )}
       </div>
 
-      {Object.keys(summary).length > 0 && (
-        <div className="mt-4 flex justify-between text-sm text-gray-300">
-          <span>Peak Load: {Math.round(summary.peak_load_mw || 0).toLocaleString()} MW</span>
-          <span>Forecast Error: ±{Math.round(summary.avg_forecast_error_mw || 0)} MW</span>
-          <span>Accuracy: {(summary.forecast_accuracy_percent || 0).toFixed(1)}%</span>
+      {/* Summary Statistics */}
+      {Object.keys(summary).length > 0 && !loading && !error && (
+        <div className="border-t border-gray-700 pt-4">
+          <div className="flex justify-between items-center text-sm">
+            <div className="text-gray-300">
+              <span className="font-medium">Peak Load:</span>{' '}
+              <span className="text-white">
+                {Math.round(summary.peak_load_mw || 0).toLocaleString()} MW
+              </span>
+            </div>
+            <div className="text-gray-300">
+              <span className="font-medium">Forecast Error:</span>{' '}
+              <span className="text-white">
+                ±{Math.round(summary.avg_forecast_error_mw || 0).toLocaleString()} MW
+              </span>
+            </div>
+            <div className="text-gray-300">
+              <span className="font-medium">Accuracy:</span>{' '}
+              <span className="text-white">
+                {(summary.forecast_accuracy_percent || 0).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+          
+          {/* Debug info */}
+          <div className="mt-2 text-xs text-gray-500">
+            <span>Data points: {loadData.length}</span>
+            <span className="mx-2">•</span>
+            <span>Loading: {loading ? 'Yes' : 'No'}</span>
+            <span className="mx-2">•</span>
+            <span>Error: {error ? 'Yes' : 'None'}</span>
+            {loadData.length > 0 && (
+              <>
+                <span className="mx-2">•</span>
+                <span>Sample: Hour {loadData[0]?.hour} - Actual: {Math.round(loadData[0]?.actual_load_mw || 0).toLocaleString()}MW</span>
+              </>
+            )}
+          </div>
         </div>
       )}
     </Card>

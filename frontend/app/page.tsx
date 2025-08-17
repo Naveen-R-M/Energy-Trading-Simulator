@@ -184,7 +184,7 @@ export default function EnergyTradingApp() {
             <ContextTiles selectedDate={selectedDate} selectedNode={selectedNode} />
 
             {/* Alerts Panel */}
-            <AlertsPanel />
+            {/* <AlertsPanel /> */}
 
             {/* Trading and Positions Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

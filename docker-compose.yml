@@ -23,19 +23,20 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend service with optimized build
+  # Frontend service - optimized for development
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev.simple  # Use simple dev dockerfile
+      dockerfile: Dockerfile
     container_name: energy-trading-frontend
     ports:
       - "3000:3000"
-    # Mount source for hot reload in development
     volumes:
+      # Mount source for hot reload
       - ./frontend:/app
-      - /app/node_modules  # Preserve node_modules
-      - /app/.next         # Preserve Next.js cache
+      # Preserve node_modules and cache for performance
+      - /app/node_modules
+      - /app/.next
     depends_on:
       backend:
         condition: service_healthy
@@ -43,19 +44,21 @@ services:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
       - TURBO_TELEMETRY_DISABLED=1
+      - CHOKIDAR_USEPOLLING=true  # Enable file watching for Docker
+      - WATCHPACK_POLLING=true    # Enable webpack polling
       - BACKEND_URL=http://backend:8000
+      # Performance optimizations
+      - NODE_OPTIONS=--max-old-space-size=2048
     restart: always
     networks:
       - energy-trading-network
 
+# Define custom network for service communication
 networks:
   energy-trading-network:
     driver: bridge
 
+# Volumes for persistent data
 volumes:
   backend_data:
-    driver: local
-  frontend_node_modules:
-    driver: local
-  frontend_next_cache:
     driver: local
