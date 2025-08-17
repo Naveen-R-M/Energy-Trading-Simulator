@@ -59,22 +59,40 @@ const LoadChart = React.memo(function LoadChart({ selectedDate, selectedNode }: 
         throw new Error('Invalid load data format received from backend')
       }
       
+      // Remove duplicates and transform data for chart
+      const uniqueHours = new Map()
+      result.data.forEach((item: any) => {
+        const hour = item.hour
+        if (!uniqueHours.has(hour) || uniqueHours.get(hour).actual_load_mw < item.actual_load_mw) {
+          uniqueHours.set(hour, item)
+        }
+      })
+      
+      const deduplicatedData = Array.from(uniqueHours.values())
+      
       // Transform data for chart (add hour labels and ensure proper formatting)
-      const transformedData = result.data.map((item: any) => ({
+      const transformedData = deduplicatedData.map((item: any) => ({
         ...item,
         hourLabel: `${String(item.hour).padStart(2, '0')}:00`,
         // Ensure numbers are properly formatted
         actual_load_mw: item.actual_load_mw || 0,
         forecast_load_mw: item.forecast_load_mw || 0,
         error_mw: item.error_mw || 0
-      }))
+      })).sort((a, b) => a.hour - b.hour)  // Ensure sorted by hour
       
       console.log('✅ Load data transformed:', {
-        count: transformedData.length,
+        originalCount: result.data?.length,
+        deduplicatedCount: transformedData.length,
+        hours: transformedData.map(d => d.hour),
         peakLoad: result.summary?.peak_load_mw,
         avgError: result.summary?.avg_forecast_error_mw,
         accuracy: result.summary?.forecast_accuracy_percent
       })
+      
+      // Validate we have data
+      if (transformedData.length === 0) {
+        throw new Error('No valid load data after deduplication')
+      }
       
       setLoadData(transformedData)
       setSummary(result.summary || {})
@@ -233,20 +251,23 @@ const LoadChart = React.memo(function LoadChart({ selectedDate, selectedNode }: 
             </div>
           </div>
           
-          {/* Debug info */}
-          <div className="mt-2 text-xs text-gray-500">
+          {/* Enhanced Debug info */}
+          <div className="mt-2 text-xs text-gray-500 space-y-1">
+          <div>
             <span>Data points: {loadData.length}</span>
             <span className="mx-2">•</span>
             <span>Loading: {loading ? 'Yes' : 'No'}</span>
             <span className="mx-2">•</span>
             <span>Error: {error ? 'Yes' : 'None'}</span>
-            {loadData.length > 0 && (
-              <>
-                <span className="mx-2">•</span>
-                <span>Sample: Hour {loadData[0]?.hour} - Actual: {Math.round(loadData[0]?.actual_load_mw || 0).toLocaleString()}MW</span>
-              </>
-            )}
           </div>
+          {loadData.length > 0 && (
+          <>
+            <div>Hours: [{loadData.map(d => d.hour).join(', ')}]</div>
+              <div>Sample: Hour {loadData[0]?.hour} - Actual: {Math.round(loadData[0]?.actual_load_mw || 0).toLocaleString()}MW, Forecast: {Math.round(loadData[0]?.forecast_load_mw || 0).toLocaleString()}MW</div>
+                <div>Peak: Hour {loadData.reduce((peak, current) => (current.actual_load_mw || 0) > (peak.actual_load_mw || 0) ? current : peak, loadData[0])?.hour} ({Math.round(loadData.reduce((peak, current) => (current.actual_load_mw || 0) > (peak.actual_load_mw || 0) ? current : peak, loadData[0])?.actual_load_mw || 0).toLocaleString()}MW)</div>
+            </>
+          )}
+        </div>
         </div>
       )}
     </Card>

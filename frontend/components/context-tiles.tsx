@@ -110,21 +110,43 @@ const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNo
       }
       
       if (result.data && Array.isArray(result.data)) {
-        // Transform for chart display
-        const transformedData = result.data.map((item: any) => ({
+        // Check if we have valid data
+        if (result.data.length === 0) {
+          throw new Error('No load data points received from backend')
+        }
+        
+        // Remove duplicates by hour and transform for chart display
+        const uniqueHours = new Map()
+        result.data.forEach((item: any) => {
+          const hour = item.hour
+          if (!uniqueHours.has(hour) || uniqueHours.get(hour).actual_load_mw < item.actual_load_mw) {
+            uniqueHours.set(hour, item)
+          }
+        })
+        
+        const deduplicatedData = Array.from(uniqueHours.values())
+        
+        const transformedData = deduplicatedData.map((item: any) => ({
           hour: item.hour,
           time: `${String(item.hour).padStart(2, '0')}:00`,
-          actual: Math.round(item.actual_load_mw),
-          forecast: Math.round(item.forecast_load_mw),
-          difference: Math.round(item.error_mw)
-        }))
+          actual: Math.round(item.actual_load_mw || 0),
+          forecast: Math.round(item.forecast_load_mw || 0),
+          difference: Math.round(item.error_mw || 0)
+        })).sort((a, b) => a.hour - b.hour)  // Ensure sorted by hour
         
         console.log('✅ Load data transformed:', {
-          count: transformedData.length,
+          originalCount: result.data.length,
+          deduplicatedCount: transformedData.length,
+          hours: transformedData.map(d => d.hour),
           firstItem: transformedData[0],
           lastItem: transformedData[transformedData.length - 1],
           summary: result.summary
         })
+        
+        // Validate we have proper 24-hour data
+        if (transformedData.length === 0) {
+          throw new Error('No valid load data after deduplication')
+        }
         
         setLoadData(transformedData)
         setLoadSummary(result.summary || {})
@@ -236,11 +258,15 @@ const ContextTiles = React.memo(function ContextTiles({ selectedDate, selectedNo
                   </div>
                 )}
                 
-                {/* Debug info */}
-                <div className="mt-2 text-xs text-gray-500">
-                  Data points: {loadData.length} • Loading: {loadLoading ? 'Yes' : 'No'} • Error: {loadError || 'None'}
+                {/* Enhanced Debug info */}
+                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                  <div>Data points: {loadData.length} • Loading: {loadLoading ? 'Yes' : 'No'} • Error: {loadError || 'None'}</div>
                   {loadData.length > 0 && (
-                    <div>Sample: Hour {loadData[0]?.hour} - Actual: {loadData[0]?.actual?.toLocaleString()}MW</div>
+                    <>
+                      <div>Hours: [{loadData.map(d => d.hour).join(', ')}]</div>
+                      <div>Sample: Hour {loadData[0]?.hour} - Actual: {loadData[0]?.actual?.toLocaleString()}MW, Forecast: {loadData[0]?.forecast?.toLocaleString()}MW</div>
+                      <div>Peak Hour: {loadData.reduce((peak, current) => current.actual > peak.actual ? current : peak, loadData[0])?.hour} ({loadData.reduce((peak, current) => current.actual > peak.actual ? current : peak, loadData[0])?.actual?.toLocaleString()}MW)</div>
+                    </>
                   )}
                 </div>
               </Card>

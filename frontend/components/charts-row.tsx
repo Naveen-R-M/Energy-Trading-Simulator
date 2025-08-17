@@ -636,7 +636,7 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
               <IconInfoCircle className="text-gray-400 text-sm" />
             </Tooltip>
           </div>
-          <Text className="text-sm text-gray-500">{selectedDate.toLocaleDateString()}</Text>
+          <Text className="text-sm text-gray-500">{selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</Text>
         </div>
 
         <div className="h-64">
@@ -664,7 +664,7 @@ const ChartsRow = React.memo(function ChartsRow({ selectedDate, selectedNode }: 
           ) : daData.length === 0 ? (
             // No data state
             <div className="flex items-center justify-center h-full">
-              <Text className="text-sm text-gray-500">No day-ahead data for {selectedDate.toLocaleDateString()}</Text>
+              <Text className="text-sm text-gray-500">No day-ahead data for {selectedDate instanceof Date ? selectedDate.toLocaleDateString() : 'Invalid Date'}</Text>
             </div>
           ) : (
             // Chart with real DA data
