@@ -211,9 +211,6 @@ export default function EnergyTradingAppGlass() {
                 </div>
               </div>
 
-              {/* Positions Table */}
-              <div className="lg:col-span-2">
-                <PositionsManager />
               {/* Right - Trade Button */}
               <button 
                 onClick={() => setIsTradeDrawerOpen(true)}

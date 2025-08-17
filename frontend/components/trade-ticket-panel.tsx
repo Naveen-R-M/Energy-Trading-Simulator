@@ -313,11 +313,17 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
   const isFormValid = quantity > 0 && limitPrice > 0 && selectedHour >= 0
 
   return (
-    <Card>
+    <Card 
+      className="bg-white/50 border-white/60 backdrop-blur-sm shadow-lg"
+      style={{
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)'
+      }}
+    >
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <Title level={5} className="mb-0">
+          <Title level={5} className="mb-0 text-foreground">
             Day-Ahead Trade Ticket
           </Title>
           <div className="flex items-center gap-3">
@@ -329,7 +335,7 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
         </div>
 
         {/* Fake Mode Toggle */}
-        <Card className={`${fakeMode ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'}`}>
+        <Card className={`${fakeMode ? 'bg-orange-50 border-orange-200' : 'bg-white/50 border-white/60'} backdrop-blur-sm`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {fakeMode ? (
@@ -338,7 +344,7 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
                 <IconBug className="text-accent" />
               )}
               <div>
-                <Text className="text-sm font-medium">
+                <Text className="text-sm font-medium text-foreground">
                   {fakeMode ? "Fake Mode Active" : "Live Mode"}
                 </Text>
                 <Text className="text-xs text-muted-foreground block">
@@ -350,7 +356,7 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Text className="text-xs">Fake Mode</Text>
+              <Text className="text-xs text-muted-foreground">Fake Mode</Text>
               <Switch
                 checked={fakeMode}
                 onChange={setFakeMode}
@@ -385,7 +391,7 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
           <div>
             <Text className="text-sm font-medium mb-2 block text-foreground">Delivery Hour</Text>
             {fakeMode ? (
-              <div className="p-3 bg-orange-50 border border-orange-200 rounded">
+              <div className="p-3 bg-orange-50/80 border border-orange-200/60 rounded backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <Text className="text-sm font-medium text-orange-800">
@@ -431,11 +437,11 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
             <Text className="text-sm font-medium mb-2 block text-foreground">Side</Text>
             <RadioGroup value={side} onChange={setSide} disabled={!isTradingAllowed && !fakeMode}>
               <Radio value="Buy">
-                <span className="text-primary font-medium">Buy</span>
+                <span className="text-green-600 font-medium">Buy</span>
                 <Text className="text-xs text-muted-foreground ml-2">Long position</Text>
               </Radio>
               <Radio value="Sell">
-                <span className="text-secondary font-medium">Sell</span>
+                <span className="text-red-600 font-medium">Sell</span>
                 <Text className="text-xs text-muted-foreground ml-2">Short position</Text>
               </Radio>
             </RadioGroup>
@@ -528,7 +534,7 @@ export default function TradeTicketPanel({ currentTime, onTradeSubmit }: TradeTi
               <Text className="text-sm font-medium mb-3 block text-foreground">Recent Tickets</Text>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {tickets.slice(-3).map((ticket, index) => (
-                  <Card key={index} className={ticket.isFake ? "bg-orange-50 border-orange-200" : "bg-card border-border"}>
+                  <Card key={index} className={ticket.isFake ? "bg-orange-50/80 border-orange-200/60 backdrop-blur-sm" : "bg-white/50 border-white/60 backdrop-blur-sm"}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(ticket.status)}
