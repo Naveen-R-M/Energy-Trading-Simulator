@@ -381,12 +381,6 @@ This project is designed for educational and demonstration purposes. Key areas f
 
 ---
 
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
 ## 🙏 Acknowledgments
 
 - **[GridStatus.io](https://gridstatus.io)** - Real-time grid data API
