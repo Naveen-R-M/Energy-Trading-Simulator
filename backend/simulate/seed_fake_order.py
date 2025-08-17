@@ -1,41 +1,83 @@
 #!/usr/bin/env python3
 import os, sqlite3, sys, uuid
 from datetime import datetime, timedelta, time, timezone, date
+
 try:
     from zoneinfo import ZoneInfo  # Python 3.9+
 except Exception:
     print("This script requires Python 3.9+ for zoneinfo.", file=sys.stderr); sys.exit(1)
 
+# ----------------------------
+# Config
+# ----------------------------
 DEFAULT_DB_PATH = os.environ.get("DB_PATH", "/app/data/trading.db")
 ET = ZoneInfo("America/New_York")
 
-ORDERS_SCHEMA = """
+ORDERS_BASE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
-  created_at TEXT NOT NULL,
-  market TEXT NOT NULL,
-  location_type TEXT NOT NULL,
+  created_at TEXT NOT NULL,            -- UTC ISO8601 of order creation
+  market TEXT NOT NULL,                -- 'DA'
+  location_type TEXT NOT NULL,         -- 'HUB'|'ZONE'|'GEN'
   location TEXT NOT NULL,
-  hour_start_utc TEXT NOT NULL,
-  side TEXT NOT NULL,
+  hour_start_utc TEXT NOT NULL,        -- ISO8601 UTC (start of the operating hour)
+  side TEXT NOT NULL,                  -- 'BUY'|'SELL'
   qty_mwh REAL NOT NULL,
   limit_price REAL NOT NULL,
-  status TEXT NOT NULL,               -- 'PENDING'|'APPROVED'|'REJECTED'|'CLEARED'|'UNFILLED'
+  status TEXT NOT NULL,                -- 'PENDING'|'APPROVED'|'REJECTED'|'CLEARED'|'UNFILLED'
   reject_reason TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_orders_hour_loc ON orders(hour_start_utc, location);
 """
 
+# Columns used by the moderator to snapshot RT price at approval time
+APPROVAL_COLUMNS = {
+    "approved_at": "TEXT",                              # UTC ISO when approved
+    "approval_rt_interval_start_utc": "TEXT",           # RT 5-min interval start (UTC)
+    "approval_rt_lmp": "REAL",                          # RT LMP at approval snapshot
+    "approval_rt_source": "TEXT",                       # e.g., 'gridstatus:...'
+    "approval_rt_payload": "TEXT"                       # raw JSON payload for audit/debug
+}
+
+OPTIONAL_INDEXES = [
+    ("idx_orders_status", "CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)")
+]
+
+# ----------------------------
+# DB helpers
+# ----------------------------
 def ensure_db(db_path: str):
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL;")
-    con.executescript(ORDERS_SCHEMA)
+    con.executescript(ORDERS_BASE_SCHEMA)
+    ensure_approval_columns(con)
+    ensure_optional_indexes(con)
     return con
+
+def table_has_column(con: sqlite3.Connection, table: str, column: str) -> bool:
+    cur = con.execute(f"PRAGMA table_info({table});")
+    cols = {row["name"] for row in cur.fetchall()}
+    return column in cols
+
+def ensure_approval_columns(con: sqlite3.Connection):
+    for col, typ in APPROVAL_COLUMNS.items():
+        if not table_has_column(con, "orders", col):
+            con.execute(f"ALTER TABLE orders ADD COLUMN {col} {typ};")
+    con.commit()
+
+def ensure_optional_indexes(con: sqlite3.Connection):
+    for _, stmt in OPTIONAL_INDEXES:
+        con.execute(stmt)
+    con.commit()
 
 def iso_utc(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat()
 
+# ----------------------------
+# Small interactive helpers
+# ----------------------------
 def ask(prompt: str, default: str | None = None) -> str:
     suffix = f" [{default}]" if default is not None else ""
     while True:
@@ -48,7 +90,8 @@ def ask_float(prompt: str, default: float, minv: float | None = None) -> float:
         s = ask(prompt, str(default))
         try:
             v = float(s)
-            if minv is not None and v < minv: print(f"Value must be ≥ {minv}"); continue
+            if minv is not None and v < minv:
+                print(f"Value must be ≥ {minv}"); continue
             return v
         except ValueError:
             print("Please enter a number.")
@@ -60,7 +103,8 @@ def ask_choice(prompt: str, choices: list[str], default_index: int = 0) -> str:
         try:
             k = int(s)
             if 1 <= k <= len(choices): return choices[k - 1]
-        except ValueError: pass
+        except ValueError:
+            pass
         print(f"Please enter a number between 1 and {len(choices)}.")
 
 def ask_yes_no(prompt: str, default_yes: bool = True) -> bool:
@@ -87,6 +131,7 @@ def choose_et_hour_start() -> str:
     except Exception:
         print("Invalid date. Expected YYYY-MM-DD."); sys.exit(1)
 
+    # Build 24 slots
     slots = []
     for h in range(24):
         start = datetime.combine(day_et, time(hour=h, tzinfo=ET))
@@ -124,6 +169,9 @@ def pick_hour_start_interactive() -> str:
     ], default_index=0)
     return choose_et_hour_start() if mode.startswith("Hour in America/New_York") else choose_utc_hour_start()
 
+# ----------------------------
+# Main
+# ----------------------------
 def main():
     print("=== Interactive Fake Order Seeder (status=PENDING) ===\n")
 
@@ -162,18 +210,25 @@ def main():
     print(f"Created_at (UTC): {created_at_utc}")
     print(f"Status:           PENDING")
     print("----------------")
-    confirm = ask_yes_no("Proceed to insert?", True)
-    if not confirm:
+    if not ask_yes_no("Proceed to insert?", True):
         print("Cancelled."); return
 
     con = ensure_db(db_path)
     try:
         order_id = str(uuid.uuid4())
         con.execute(
-            """INSERT INTO orders
-               (id, created_at, market, location_type, location, hour_start_utc, side, qty_mwh, limit_price, status, reject_reason)
-               VALUES (?, ?, 'DA', ?, ?, ?, ?, ?, ?, 'PENDING', NULL)""",
-            (order_id, created_at_utc, location_type, location, hour_start_utc, side, float(qty_mwh), float(limit_price)),
+            """
+            INSERT INTO orders
+            (id, created_at, market, location_type, location, hour_start_utc, side,
+            qty_mwh, limit_price, status, reject_reason,
+            approved_at, approval_rt_interval_start_utc, approval_rt_lmp,
+            approval_rt_source, approval_rt_payload)
+            VALUES
+            (?, ?, 'DA', ?, ?, ?, ?, ?, ?, 'PENDING', NULL,
+            NULL, NULL, NULL, NULL, NULL)
+            """,
+            (order_id, created_at_utc, location_type, location, hour_start_utc,
+            side, float(qty_mwh), float(limit_price)),
         )
         con.commit()
     finally:
@@ -190,7 +245,11 @@ def main():
         "side": side,
         "qty_mwh": qty_mwh,
         "limit_price": limit_price,
-        "status": "PENDING"
+        "status": "PENDING",
+        "approved_at": None,
+        "approval_rt_interval_start_utc": None,
+        "approval_rt_lmp": None,
+        "approval_rt_source": None
     })
     print(f"\nDB: {db_path}")
 
