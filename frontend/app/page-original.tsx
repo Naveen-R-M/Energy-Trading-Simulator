@@ -251,7 +251,7 @@ export default function EnergyTradingApp() {
             {/* Last 6 Intervals */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-16 font-semibold text-ink">Last 6cix. intervals</h3>
+                <h3 className="text-16 font-semibold text-ink">Last 6 intervals</h3>
                 <span className="text-12 text-muted">00/17/2023</span>
               </div>
               

@@ -277,7 +277,7 @@ export default function EnergyTradingAppGlass() {
             {/* Last 6 Intervals - Glass Tiles */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">Last 6cix. intervals</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Last 6 intervals</h3>
                 <span className="text-xs text-slate-500">{currentTime.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>
               </div>
               
