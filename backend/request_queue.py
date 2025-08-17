@@ -15,7 +15,7 @@ class QueuedRequest:
     error: Exception = None
 
 class RateLimitedQueue:
-    def __init__(self, interval_seconds: float = 2.0):
+    def __init__(self, interval_seconds: float = 2.5):
         self.queue = queue.Queue()
         self.interval = interval_seconds
         self.running = False
@@ -124,7 +124,7 @@ class RateLimitedQueue:
             }
 
 # Global queue instance
-REQUEST_QUEUE = RateLimitedQueue(interval_seconds=2.0)
+REQUEST_QUEUE = RateLimitedQueue(interval_seconds=2.5)
 
 def queued_api_call(func):
     """Decorator to queue API calls for rate limiting."""

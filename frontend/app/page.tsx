@@ -278,7 +278,7 @@ export default function EnergyTradingAppGlass() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-slate-900">Last 6cix. intervals</h3>
-                <span className="text-xs text-slate-500">00/17/2023</span>
+                <span className="text-xs text-slate-500">{currentTime.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>
               </div>
               
               <div className="flex gap-3 overflow-x-auto pb-2">

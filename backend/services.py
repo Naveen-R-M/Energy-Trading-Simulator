@@ -34,6 +34,7 @@ def _floor_hour(dt: datetime) -> datetime:
     return dt.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
 
 
+@cached_api_call
 @api_request_with_rotation(API_POOL, max_retries=3)
 def get_day_ahead_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get latest 24 hours of day-ahead prices."""
@@ -49,6 +50,7 @@ def get_day_ahead_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_L
     return response.json()["data"]
 
 
+@cached_api_call
 @api_request_with_rotation(API_POOL, max_retries=3)
 def get_day_ahead_hour(market: str, location: str, hour_start: str, hour_end: str, api_key: str = None) -> List[Dict]:
     """Get day-ahead prices for specific time range."""
@@ -65,6 +67,7 @@ def get_day_ahead_hour(market: str, location: str, hour_start: str, hour_end: st
     return response.json()["data"]
 
 
+@cached_api_call
 @api_request_with_rotation(API_POOL, max_retries=3)
 def get_rt_latest(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATION, api_key: str = None) -> List[Dict]:
     """Get latest real-time price."""
@@ -98,6 +101,7 @@ def get_rt_last24h(market: str = DEFAULT_MARKET, location: str = DEFAULT_LOCATIO
 
 
 @queued_api_call
+@cached_api_call
 @api_request_with_rotation(API_POOL, max_retries=3)
 def get_rt_range(market: str, location: str, start: str, end: str, api_key: str = None) -> List[Dict]:
     """Get real-time prices for specific time range."""

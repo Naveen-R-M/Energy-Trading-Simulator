@@ -160,13 +160,13 @@ export default function TradeTicketPanelGlass({ currentTime, onTradeSubmit }: Tr
       }
 
       if (fakeMode) {
-        // Submit to fake order API with current hour + 1
-        const hourStartUTC = getCurrentPlusOneHourUTC()
+        // Submit to fake order API with moderation time as hour_start_utc
+        const moderationTimeUTC = getNextModerationTime().toISOString()
         const params = new URLSearchParams({
           side: side.toUpperCase(),
           qty_mwh: quantity.toString(),
           limit_price: limitPrice.toString(),
-          hour_start_utc: hourStartUTC,
+          hour_start_utc: moderationTimeUTC,  // Use moderation time for immediate processing
           location: "PJM-RTO",
           location_type: "ZONE"
         })
@@ -198,7 +198,7 @@ export default function TradeTicketPanelGlass({ currentTime, onTradeSubmit }: Tr
         // Auto-trigger moderation at next 5-min interval + 45s
         setTimeout(async () => {
           try {
-            const moderateResponse = await fetch(`/api/v1/orders/moderate/${encodeURIComponent(hourStartUTC)}`, {
+            const moderateResponse = await fetch(`/api/v1/orders/moderate/${encodeURIComponent(moderationTimeUTC)}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -339,7 +339,7 @@ export default function TradeTicketPanelGlass({ currentTime, onTradeSubmit }: Tr
                   <IconFolder className="w-4 h-4" />
                 </div>
               ) : (
-                <div className="p-2 rounded-full bg-slate-400 text-white">
+                <div className="p-2 rounded-full bg-slate-400 text-slate-500">
                   <IconBug className="w-4 h-4" />
                 </div>
               )}
@@ -348,7 +348,6 @@ export default function TradeTicketPanelGlass({ currentTime, onTradeSubmit }: Tr
                   fakeMode ? 'text-orange-800' : 'text-slate-700'
                 }`}>
                   {fakeMode ? "🧪 FAKE MODE ACTIVE" : "📊 Live Simulation"}
-                  <span className="text-xs ml-2 opacity-60">(Click to toggle)</span>
                 </div>
                 <div className={`text-xs ${
                   fakeMode ? 'text-orange-600' : 'text-slate-500'
@@ -391,9 +390,11 @@ export default function TradeTicketPanelGlass({ currentTime, onTradeSubmit }: Tr
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <IconClockCircle className="text-blue-600" />
+                <div className="text-blue-500">
+                  <IconClockCircle className="text-blue-600" />
+                </div>
                 <span className="text-sm font-medium text-blue-700">DA Auction Close</span>
-                <span className="text-xs text-blue-500 opacity-60 ml-2">(Click for Live Mode)</span>
+                <span className="text-xs text-blue-500 opacity-60 ml-2">(Click Live Mode)</span>
               </div>
               <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
                 11:00 AM ET

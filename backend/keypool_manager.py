@@ -15,7 +15,6 @@ class ApiKeyStats:
     request_count: int = 0
     rate_limited_until: Optional[datetime] = None
     consecutive_failures: int = 0
-    is_active: bool = True
 
 class ApiKeyPool:
     def __init__(self, api_keys: List[str], strategy: str = "round_robin"):
@@ -30,7 +29,7 @@ class ApiKeyPool:
         self.strategy = strategy
         self.current_index = 0
         self.lock = threading.Lock()
-        self.cooldown_minutes = 1.5  # How long to wait after rate limit
+        self.cooldown_seconds = 5  # How long to wait after rate limit (in seconds)
         
     def get_next_key(self) -> Optional[str]:
         """Get the next available API key based on strategy."""
@@ -42,7 +41,7 @@ class ApiKeyPool:
             print(f"   Total keys: {len(self.keys_stats)}")
             print(f"   Available keys: {len(available_keys)}")
             for i, key_stat in enumerate(self.keys_stats):
-                status = "Available" if key_stat in available_keys else "Rate-limited/Inactive"
+                status = "Available" if key_stat in available_keys else "Rate-limited"
                 print(f"   Key {i+1} ({key_stat.key[:8]}...): {status} - Requests: {key_stat.request_count}")
             
             if not available_keys:
@@ -53,7 +52,7 @@ class ApiKeyPool:
                 
             if not available_keys:
                 print("❌ Still no available keys after cooldown check!")
-                raise Exception("All API keys are exhausted or inactive")
+                raise Exception("All API keys are rate limited")
                 
             if self.strategy == "round_robin":
                 return self._round_robin_selection(available_keys)
@@ -70,9 +69,6 @@ class ApiKeyPool:
         available = []
         
         for key_stat in self.keys_stats:
-            if not key_stat.is_active:
-                continue
-                
             # Check if rate limit has expired
             if key_stat.rate_limited_until and now >= key_stat.rate_limited_until:
                 key_stat.rate_limited_until = None
@@ -124,8 +120,9 @@ class ApiKeyPool:
         with self.lock:
             for key_stat in self.keys_stats:
                 if key_stat.key == api_key:
-                    cooldown_minutes = retry_after or self.cooldown_minutes
-                    key_stat.rate_limited_until = datetime.now() + timedelta(minutes=cooldown_minutes)
+                    # retry_after is typically in seconds from the API, use it if provided
+                    cooldown_seconds = retry_after or self.cooldown_seconds
+                    key_stat.rate_limited_until = datetime.now() + timedelta(seconds=cooldown_seconds)
                     key_stat.consecutive_failures += 1
                     print(f"🚫 API Key {api_key[:8]}... rate limited until {key_stat.rate_limited_until}")
                     break
@@ -138,15 +135,7 @@ class ApiKeyPool:
                     key_stat.consecutive_failures = 0
                     break
     
-    def deactivate_key(self, api_key: str):
-        """Permanently deactivate a problematic API key."""
-        with self.lock:
-            for key_stat in self.keys_stats:
-                if key_stat.key == api_key:
-                    key_stat.is_active = False
-                    print(f"❌ API Key {api_key[:8]}... deactivated")
-                    break
-    
+
     def _wait_for_cooldown(self):
         """Wait for the shortest cooldown period."""
         now = datetime.now()
@@ -155,7 +144,7 @@ class ApiKeyPool:
         if rate_limited_keys:
             shortest_wait = min(rate_limited_keys, key=lambda k: k.rate_limited_until)
             wait_time = (shortest_wait.rate_limited_until - now).total_seconds()
-            if wait_time > 0 and wait_time < (self.cooldown_minutes * 60):  # Only wait up to cooldown period
+            if wait_time > 0 and wait_time < self.cooldown_seconds:  # Only wait up to cooldown period
                 print(f"⏳ Waiting {wait_time:.1f} seconds for API key cooldown...")
                 time.sleep(wait_time)
     
@@ -163,22 +152,22 @@ class ApiKeyPool:
         """Get current pool statistics."""
         with self.lock:
             now = datetime.now()
+            available_keys = self._get_available_keys()
             stats = {
                 "total_keys": len(self.keys_stats),
-                "active_keys": len([k for k in self.keys_stats if k.is_active]),
-                "available_keys": len(self._get_available_keys()),
+                "available_keys": len(available_keys),
                 "rate_limited_keys": len([k for k in self.keys_stats if k.rate_limited_until and k.rate_limited_until > now]),
                 "strategy": self.strategy,
                 "keys": []
             }
             
             for key_stat in self.keys_stats:
+                is_rate_limited = key_stat.rate_limited_until is not None and key_stat.rate_limited_until > now
                 key_info = {
                     "key_preview": key_stat.key[:8] + "...",
                     "requests": key_stat.request_count,
                     "last_used": key_stat.last_used.isoformat(),
-                    "is_active": key_stat.is_active,
-                    "rate_limited": key_stat.rate_limited_until is not None,
+                    "rate_limited": is_rate_limited,
                     "failures": key_stat.consecutive_failures
                 }
                 if key_stat.rate_limited_until:
@@ -214,14 +203,16 @@ def api_request_with_rotation(pool: ApiKeyPool, max_retries: int = 3):
                     if e.response.status_code == 429:  # Rate limit
                         # Check for Retry-After header
                         retry_after = e.response.headers.get('Retry-After')
-                        retry_minutes = int(retry_after) // 60 if retry_after else None
-                        pool.mark_rate_limited(api_key, retry_minutes)
+                        retry_seconds = int(retry_after) if retry_after else None
+                        pool.mark_rate_limited(api_key, retry_seconds)
                         
                         print(f"⚠️ Rate limit hit on attempt {attempt + 1}, trying different key...")
                         continue
                     elif e.response.status_code == 403:  # Forbidden - bad key
-                        pool.deactivate_key(api_key)
-                        print(f"⚠️ Invalid API key on attempt {attempt + 1}, trying different key...")
+                        # Mark as rate limited instead of permanent deactivation
+                        # This allows for temporary issues (expired keys, etc.) to recover
+                        pool.mark_rate_limited(api_key, retry_seconds=300)  # 5-minute cooldown for 403s
+                        print(f"⚠️ Forbidden response on attempt {attempt + 1}, rate limiting key temporarily...")
                         continue
                     else:
                         # Other HTTP error, don't retry

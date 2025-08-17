@@ -138,7 +138,6 @@ def load_comparison(
     """Get actual vs forecast load comparison for a specific date (YYYY-MM-DD)."""
     try:
         result = get_load_comparison(date)
-        print("Resultttt", result)
         return {
             "market": market,
             "date": date,
